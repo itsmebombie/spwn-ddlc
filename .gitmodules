@@ -1,0 +1,3 @@
+[submodule "ddlc-decompiled"]
+	path = ddlc-decompiled
+	url = https://github.com/Blobadoodle/ddlc-decompiled
