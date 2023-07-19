@@ -219,76 +219,46 @@ return {
         if char_index != null && char_index < tokens.length - 1 {
             transform_type = tokens[char_index + 1]
             
-            match transform_type {
-                =="t41": tcommon(char, 200, x_off, y_off),
-                =="t42": tcommon(char, 493, x_off, y_off),
-                =="t43": tcommon(char, 786, x_off, y_off),
-                =="t44": tcommon(char, 1080, x_off, y_off),
-                =="t31": tcommon(char, 240, x_off, y_off),
-                =="t32": tcommon(char, 640, x_off, y_off),
-                =="t33": tcommon(char, 1040, x_off, y_off),
-                =="t21": tcommon(char, 400, x_off, y_off),
-                =="t22": tcommon(char, 880, x_off, y_off),
-                =="t11": tcommon(char, 640, x_off, y_off),
-    
-                =="i41": tinstant(char, 200, x_off, y_off),
-                =="i42": tinstant(char, 493, x_off, y_off),
-                =="i43": tinstant(char, 786, x_off, y_off),
-                =="i44": tinstant(char, 1080, x_off, y_off),
-                =="i31": tinstant(char, 240, x_off, y_off),
-                =="i32": tinstant(char, 640, x_off, y_off),
-                =="i33": tinstant(char, 1040, x_off, y_off),
-                =="i21": tinstant(char, 400, x_off, y_off),
-                =="i22": tinstant(char, 880, x_off, y_off),
-                =="i11": tinstant(char, 640, x_off, y_off),
-    
-                =="f41": focus(char, 200, x_off, y_off),
-                =="f42": focus(char, 493, x_off, y_off),
-                =="f43": focus(char, 786, x_off, y_off),
-                =="f44": focus(char, 1080, x_off, y_off),
-                =="f31": focus(char, 240, x_off, y_off),
-                =="f32": focus(char, 640, x_off, y_off),
-                =="f33": focus(char, 1040, x_off, y_off),
-                =="f21": focus(char, 400, x_off, y_off),
-                =="f22": focus(char, 880, x_off, y_off),
-                =="f11": focus(char, 640, x_off, y_off),
-    
-                =="s41": sink(char, 200, x_off, y_off),
-                =="s42": sink(char, 493, x_off, y_off),
-                =="s43": sink(char, 786, x_off, y_off),
-                =="s44": sink(char, 1080, x_off, y_off),
-                =="s31": sink(char, 240, x_off, y_off),
-                =="s32": sink(char, 640, x_off, y_off),
-                =="s33": sink(char, 1040, x_off, y_off),
-                =="s21": sink(char, 400, x_off, y_off),
-                =="s22": sink(char, 880, x_off, y_off),
-                =="s11": sink(char, 640, x_off, y_off),
-    
-                =="h41": hop(char, 200, x_off, y_off),
-                =="h42": hop(char, 493, x_off, y_off),
-                =="h43": hop(char, 786, x_off, y_off),
-                =="h44": hop(char, 1080, x_off, y_off),
-                =="h31": hop(char, 240, x_off, y_off),
-                =="h32": hop(char, 640, x_off, y_off),
-                =="h33": hop(char, 1040, x_off, y_off),
-                =="h21": hop(char, 400, x_off, y_off),
-                =="h22": hop(char, 880, x_off, y_off),
-                =="h11": hop(char, 640, x_off, y_off),
-    
-                =="l41": leftin(char, 200, x_off, y_off),
-                =="l42": leftin(char, 493, x_off, y_off),
-                =="l43": leftin(char, 786, x_off, y_off),
-                =="l44": leftin(char, 1080, x_off, y_off),
-                =="l31": leftin(char, 240, x_off, y_off),
-                =="l32": leftin(char, 640, x_off, y_off),
-                =="l33": leftin(char, 1040, x_off, y_off),
-                =="l21": leftin(char, 400, x_off, y_off),
-                =="l22": leftin(char, 880, x_off, y_off),
-                =="l11": leftin(char, 640, x_off, y_off),
-    
-                =="thide": thide(char, x_off, y_off),
-                =="lhide": lhide(char, x_off, y_off),
+            if transform_type.length == 3 && transform_type[1].is_digit() && transform_type[2].is_digit() {
+                [kind, quantity, position] = @array(transform_type)
+
+                macro = match kind {
+                    =="t": tcommon,
+                    =="i": tinstant,
+                    =="f": focus,
+                    =="s": sink,
+                    =="h": hop,
+                    =="l": leftin,
+                }
+                // if we can find a formula we could make this even shorter
+                new_position = match [quantity,position] {
+                    ==["4","1"]: 200,
+                    ==["4","2"]: 493,
+                    ==["4","3"]: 786,
+                    ==["4","4"]: 1080,
+                    ==["3","1"]: 240,
+                    ==["3","2"]: 640,
+                    ==["3","3"]: 1040,
+                    ==["2","1"]: 400,
+                    ==["2","2"]: 880,
+                    ==["1","1"]: 640,
+                    _: () {
+                        throw "got '{}' instead of '<char><numb><numb>'".fmt(transform_type)
+                    } ()
+                }
+                return macro(char, new_position, x_off, y_off)
             }
+
+            if transform_type.length == 5 {
+                return match transform_type {
+                    =="thide": thide(char, x_off, y_off),
+                    =="lhide": lhide(char, x_off, y_off),
+                    _: () {
+                        throw "got '{}' instead of 'thide/lhide'".fmt(transform_type)
+                    } ()
+                }
+            }
+            $.print("😎 {}".fmt(transform_type))
         }
     },
 

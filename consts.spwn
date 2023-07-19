@@ -24,7 +24,7 @@ CHARACTERS_TOKENS = ["narrator", "s", "m", "n", "y", "ny", "mc"]
 
 return {
     PLAYER_NAME,
-    GENERATE_BACKGROUNDS: true,
+    GENERATE_BACKGROUNDS,
 
     _TEXT_GROUP: ?g,
     _SCENE_GROUP: ?g,
@@ -44,6 +44,7 @@ return {
     MAIN_CHARACTERS_KEYS: ["s", "m", "n", "y"],
     CHARACTERS_TOKENS,
     CHARACTERS_NAMES: [" *empty* ", "Sayori", "Yuri", "Monika", "Natsuki", "Nat & Yuri", PLAYER_NAME],
+    // TODO: backgrounds are still random cause of the dictionary
     BACKGROUNDS: { // definitions.rpy @ 114
         residential_day: "bg/residential.png",
         class_day: "bg/class.png",
