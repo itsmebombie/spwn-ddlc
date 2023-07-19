@@ -1,0 +1,108 @@
+#[cache_output]
+
+// "util.spwn" is already used by the std, so I had to name this "utils.spwn"
+
+// util functions
+extract obj_props
+
+extract import "consts.spwn"
+
+let words = 0
+
+return {
+    // object utils (probably can be moved to "interface")
+
+    circle: (x: @number, y: @number, scale: @number) { // generate circle using quarter circle thingies at x, y and scale
+        offset = 15 * scale
+        for i in 0..4 {
+            //  - + 0
+            //  + + 90
+            //  + - 180
+            //  - - 270
+            $.add(obj {
+                OBJ_ID: 1837, // quarter circle thingy
+                X: x + (offset if i is ==1|==2 else -offset),
+                Y: y + (offset if i is ==0|==1 else -offset),
+                SCALING: scale,
+                COLOR: _COLOR,
+                GROUPS: _SCENE_GROUP,
+                ROTATION: i * 90,
+                DONT_FADE: true, DONT_ENTER: true,
+            })
+        }
+    },
+    
+    line: (x: @number, y: @number, rotation: @number = 0) {
+        // for loop because quarter circle outlines are 1.667x bigger than 3d lines  
+        // plus i dont really care about usage of objects at this scale lmao
+        for i in 0..3 {
+            $.add(obj{
+                OBJ_ID: 507, // 3d line
+                X: x, Y: y + 10 - i*0.75, // +10 because of the 3d line being offset
+                ROTATION: rotation,
+                COLOR: _OUTLINE_COLOR,
+                GROUPS: _SCENE_GROUP,
+                Z_LAYER: 2,
+                DONT_FADE: true,
+                DONT_ENTER: true,
+            })
+        }
+    },
+
+    vertical_line: (x: @number, y: @number, rotation: @number = 90) {
+        // for loop because quarter circle outlines are 1.667x bigger than 3d lines  
+        // plus i dont really care about usage of objects at this scale lmao
+        for i in 0..3 {
+            $.add(obj{
+                OBJ_ID: 507, // 3d line
+                X: x + 20 - i*0.75, Y: y, // +10 because of the 3d line being offset
+                ROTATION: rotation,
+                COLOR: _OUTLINE_COLOR,
+                GROUPS: _SCENE_GROUP,
+                Z_LAYER: 2,
+                DONT_FADE: true,
+                DONT_ENTER: true,
+            })
+        }
+    },
+
+    // string utils
+    generate_line_tokens: (line: @string) {
+        splitted_strings = line.split("\"")
+        if splitted_strings.length % 2 != 1 { throw "invalid string at line"+@string(lines.find(line)) }
+
+        let tokens = []
+        if splitted_strings.length > 1 {
+            for i in 0..splitted_strings.length {
+                if i % 2 == 1 { // if in string
+                    tokens.push('"' + splitted_strings[i] + '"')
+                    continue
+                }
+
+                // if not in string
+                tokens += splitted_strings[i].split(" ")
+            }
+        } else {
+            tokens = line.split(" ")
+        }
+        
+        return tokens.filter(el => el != "")
+    },
+
+    split_into_lines: (str: @string) {
+        let lines = [""]
+
+        for word in str.split(" ") {
+            words++
+
+            lines[-1] += word + " "
+            if lines[-1].length >= 55 { lines.push("") }
+        }
+        
+        return lines.join("\n")
+    },
+
+    print_words: () {
+        $.print("words: ", words)
+    },
+}

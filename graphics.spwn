@@ -1,0 +1,269 @@
+#[cache_output]
+
+// "front-end" macros
+extract obj_props
+
+extract import "consts.spwn"
+extract import "utils.spwn"
+
+dialogue_box_outline = (x_off: @number = 0, y_off: @number = 0) {
+    $.add(obj{
+        OBJ_ID: 1835, // quarter circle outline
+        X: x_off, Y: y_off,
+        COLOR: _OUTLINE_COLOR,
+        GROUPS: _SCENE_GROUP,
+        Z_LAYER: 2,
+        DONT_FADE: true,
+        DONT_ENTER: true,
+    })
+    
+    for i in 1..14 {
+        line(x_off + i*30, y_off)
+    }
+
+    $.add(obj{
+        OBJ_ID: 1835, // quarter circle outline
+        X: x_off + 30*14, Y: y_off,
+        COLOR: _OUTLINE_COLOR,
+        GROUPS: _SCENE_GROUP,
+        ROTATION: 90,
+        Z_LAYER: 2,
+        DONT_FADE: true,
+        DONT_ENTER: true,
+    })
+
+    vertical_line(x_off - 10 + 30*14, y_off - 30)
+
+    $.add(obj{
+        OBJ_ID: 1835, // quarter circle outline
+        X: x_off + 30*14, Y: y_off - 60,
+        COLOR: _OUTLINE_COLOR,
+        GROUPS: _SCENE_GROUP,
+        ROTATION: 180,
+        Z_LAYER: 2,
+        DONT_FADE: true,
+        DONT_ENTER: true,
+    })
+
+    for i in 1..14 {
+        line(x_off + i*30, y_off - 78.5, 180) // weird y because of 3d obj offset
+    }
+
+    $.add(obj{
+        OBJ_ID: 1835, // quarter circle outline
+        X: x_off, Y: y_off - 60,
+        COLOR: _OUTLINE_COLOR,
+        GROUPS: _SCENE_GROUP,
+        ROTATION: -90,
+        Z_LAYER: 2,
+        DONT_FADE: true,
+        DONT_ENTER: true,
+    })
+    
+    vertical_line(x_off - 28.5, y_off - 30, -90)
+}
+
+dialogue_box_interior = (x_off: @number = 0, y_off: @number = 0) {
+    $.add(obj{
+        OBJ_ID: 1837, // quarter circle thingy
+        X: x_off, Y: y_off,
+        COLOR: _COLOR,
+        GROUPS: _SCENE_GROUP,
+        ROTATION: 0,
+        Z_ORDER: -1,
+        DONT_FADE: true,
+        DONT_ENTER: true,
+    })
+
+    for i in 1..14 {
+        $.add(obj{
+            OBJ_ID: 211, // white block
+            X: x_off + i*30, Y: y_off,
+            COLOR: _COLOR,
+            GROUPS: _SCENE_GROUP,
+            Z_ORDER: -1,
+            DONT_FADE: true,
+            DONT_ENTER: true,
+        })
+    }
+
+    $.add(obj{
+        OBJ_ID: 1837, // quarter circle thingy
+        X: x_off + 30*14, Y: y_off,
+        COLOR: _COLOR,
+        GROUPS: _SCENE_GROUP,
+        ROTATION: 90,
+        Z_ORDER: -1,
+        DONT_FADE: true,
+        DONT_ENTER: true,
+    })
+
+    for i in 0..14+1 {
+        $.add(obj{
+            OBJ_ID: 211, // white block
+            X: x_off + i*30, Y: y_off - 30,
+            COLOR: _COLOR,
+            GROUPS: _SCENE_GROUP,
+            Z_ORDER: -1,
+            DONT_FADE: true,
+            DONT_ENTER: true,
+        })
+    }
+
+    $.add(obj{
+        OBJ_ID: 1837, // quarter circle thingy
+        X: x_off + 30*14, Y: y_off - 60,
+        COLOR: _COLOR,
+        GROUPS: _SCENE_GROUP,
+        ROTATION: 180,
+        Z_ORDER: -1,
+        DONT_FADE: true,
+        DONT_ENTER: true,
+    })
+
+    for i in 1..14 {
+        $.add(obj{
+            OBJ_ID: 211, // white block
+            X: x_off + i*30, Y: y_off - 60,
+            COLOR: _COLOR,
+            GROUPS: _SCENE_GROUP,
+            Z_ORDER: -1,
+            DONT_FADE: true,
+            DONT_ENTER: true,
+        })
+    }
+
+    $.add(obj{
+        OBJ_ID: 1837, // quarter circle thingy
+        X: x_off, Y: y_off - 60,
+        COLOR: _COLOR,
+        GROUPS: _SCENE_GROUP,
+        ROTATION: -90,
+        Z_ORDER: -1,
+        DONT_FADE: true,
+        DONT_ENTER: true,
+    })
+}
+
+dialogue_box_speaker_thing = (x_off: @number = 0, y_off: @number = 0) {
+    for i in 0..2 {
+        $.add(obj{
+            OBJ_ID: 1837, // quarter circle thingy
+            X: x_off + i*75, Y: y_off - 22.5,
+            GROUPS: [_SCENE_GROUP, _NAME_HOLDER_GROUP],
+            COLOR: 1c,
+            SCALING: 0.5,
+            ROTATION: 90 * i,
+            Z_ORDER: -2,
+            DONT_FADE: true,
+            DONT_ENTER: true,
+        })
+    }
+
+    for i in 0..4 {
+        $.add(obj{
+            OBJ_ID: 211, // white block
+            X: x_off + (i+1)*15, Y: y_off - 22.5,
+            SCALING: 0.5,
+            GROUPS: [_SCENE_GROUP, _NAME_HOLDER_GROUP],
+            Z_ORDER: -2,
+            DONT_FADE: true,
+            DONT_ENTER: true,
+        })
+    }
+
+    for i in 0..6 {
+        $.add(obj{
+            OBJ_ID: 211, // white block
+            X: x_off + i*15, Y: y_off - 37.5,
+            GROUPS: [_SCENE_GROUP, _NAME_HOLDER_GROUP],
+            SCALING: 0.5,
+            Z_ORDER: -2,
+            DONT_FADE: true,
+            DONT_ENTER: true,
+        })
+
+        $.add(obj{
+            OBJ_ID: 503, // gradient thingy
+            X: x_off + i*15, Y: y_off - 42,
+            GROUPS: [_SCENE_GROUP, _NAME_HOLDER_GROUP],
+            HVS: "0a0a0.75a0a0", // gray
+            HVS_ENABLED: true, 
+            SCALING: 0.5,
+            Z_ORDER: -1,
+            DONT_FADE: true,
+            DONT_ENTER: true,
+        })
+    }
+}
+
+return {
+    generate_dialogue_box: () {
+        dialogue_box_outline(92, 83)
+        dialogue_box_interior(92, 83)
+        dialogue_box_speaker_thing(130, 143)
+
+        // add circle thingies
+        for i in -11..10 { // horizontal
+            for j in -3..4 { // vertical
+                circle(300 + i*20 + (j%2+1)*10, j*11+51, 0.15)
+            }
+        }
+    },
+
+    generate_borders: (x_off: @number = 0, y_off: @number = 0) {
+        // blocks
+        for i in 0..2 {
+            $.add(obj{
+                OBJ_ID: 211, // white block
+                X: x_off - (18*30)/2 - (6*30)/2 + 5, 
+                Y: y_off+180*i,
+                GROUPS: [_SCENE_GROUP],
+                Z_LAYER: 69,
+                SCALING: 6,
+                HVS: "0a0a-100a0a0", // full black
+                HVS_ENABLED: true,
+            })
+            $.add(obj{
+                OBJ_ID: 211, // white block
+                X: x_off + (18*30)/2 + (6*30)/2 - 5, Y: 
+                y_off+180*i,
+                GROUPS: [_SCENE_GROUP],
+                Z_LAYER: 69,
+                SCALING: 6,
+                HVS: "0a0a-100a0a0", // full black
+                HVS_ENABLED: true,
+            })
+        }
+
+        // 4 gradients each on the left and right side
+        for i in 0..4 {
+            $.add(obj{
+                OBJ_ID: 503, // gradient thingy
+                X: x_off - (18*30)/2 + (2.5/3*2)*30/2 + 5, 
+                Y: y_off + i*(2.5*30) - 22.5,
+                ROTATION: 90,
+                GROUPS: [_SCENE_GROUP],
+                HVS: "0a0a-100a0a0", // full black
+                HVS_ENABLED: true,
+                SCALING: 2.5,
+                Z_LAYER: 69,
+                DONT_FADE: true,
+                DONT_ENTER: true,
+            })
+            $.add(obj{
+                OBJ_ID: 503, // gradient thingy
+                X: x_off + (18*30)/2 - (2.5/3*2)*30/2 - 5, 
+                Y: y_off + i*(2.5*30) - 22.5,
+                ROTATION: -90,
+                GROUPS: [_SCENE_GROUP],
+                HVS: "0a0a-100a0a0", // full black
+                HVS_ENABLED: true,
+                SCALING: 2.5,
+                Z_LAYER: 69,
+                DONT_FADE: true,
+                DONT_ENTER: true,
+            })
+        }
+    },
+}

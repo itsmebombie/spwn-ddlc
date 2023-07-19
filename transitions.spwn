@@ -1,0 +1,141 @@
+#[cache_output]
+
+// bg transitions
+extract obj_props
+
+extract import "consts.spwn"
+extract import "utils.spwn"
+extract import "text.spwn"
+
+let current_bg = "residential_day"
+
+set_bg = (bg_name, x_off: @number = 0, y_off: @number = 0) {
+    if current_bg != bg_name { // checks if the last bg is the current bg
+        // if not, toggle off all bgs and toggle on only the one we need
+
+        let curr_bg = 0
+        let next_bg = 0
+
+        for [i, [key, path]] in BACKGROUNDS.items().enumerate() {
+            if key == current_bg { curr_bg = i }
+            if key == bg_name { next_bg = i }
+        }
+
+        $.add(obj{
+            OBJ_ID: 1614, // collectable id
+            X: x_off, Y: y_off + get_y_offset() + 300,
+            GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+            SCALING: 6,
+            TARGET: !{
+                _BACKGROUNDS_GROUP.move(0, 500 * curr_bg, 0) // move to first bg
+                _BACKGROUNDS_GROUP.move(0, -500 * next_bg, 0) // move to desired bg
+            },
+            PICKUP_MODE: 2, // toggle
+            ACTIVATE_GROUP: true, // on
+        })
+    }
+
+    current_bg = bg_name
+}
+
+fade_in_scene = (x_off: @number = 0, y_off: @number = 0) {
+    $.add(obj{
+        OBJ_ID: 1614, // collectable id
+        X: x_off, Y: y_off + get_y_offset() + 300,
+        GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+        SCALING: 6,
+        TARGET: !{
+            -> _BACKGROUNDS_GROUP.alpha(1, 0.25) // fade in bgs
+        },
+        PICKUP_MODE: 2, // toggle
+        ACTIVATE_GROUP: true, // on
+    })
+}
+
+wipe_left_scene = (x_off: @number = 0, y_off: @number = 0) {
+    $.add(obj{
+        OBJ_ID: 1614, // collectable id
+        X: x_off, Y: y_off + get_y_offset() + 300,
+        GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+        SCALING: 6,
+        TARGET: !{
+            -> _WIPE_SCENE_GROUP.move(460, 0, 0) // move behind the player
+            -> _WIPE_SCENE_GROUP.move(-460, 0, 1.25, EASE_IN) // move it to the right
+        },
+        PICKUP_MODE: 2, // toggle
+        ACTIVATE_GROUP: true, // on
+    })
+}
+
+return {
+    set_bg,
+    set_scene: (tokens, x_off: @number = 0, y_off: @number = 0) {
+        if tokens[0] == "bg" { // in the first day, tokens[0] is always "bg"
+            set_bg(tokens[1], x_off, y_off)
+        }
+    },
+
+    create_scene_wiper_thing: (x_off: @number = 0, y_off: @number = 0) {
+        $.add(obj{
+            OBJ_ID: 211, // white block
+            X: x_off - (9*30)/2, Y: y_off+90,
+            GROUPS: [_SCENE_GROUP, _WIPE_SCENE_GROUP],
+            Z_LAYER: 42,
+            SCALING: 10,
+            HVS: "0a0a-100a0a0", // full black
+            HVS_ENABLED: true,
+        })
+
+        $.add(obj{
+            OBJ_ID: 211, // white block
+            X: x_off + (9*30)/2, Y: y_off+90,
+            GROUPS: [_SCENE_GROUP, _WIPE_SCENE_GROUP],
+            Z_LAYER: 42,
+            SCALING: 10,
+            HVS: "0a0a-100a0a0", // full black
+            HVS_ENABLED: true,
+        })
+
+        // 2 gradients on the left side
+        for i in 0..2 {
+            $.add(obj{
+                OBJ_ID: 503, // gradient thingy
+                X: x_off - (19*30)/2 - (4*30)/2, Y: y_off + i*(6*30),
+                ROTATION: -90,
+                GROUPS: [_SCENE_GROUP, _WIPE_SCENE_GROUP],
+                HVS: "0a0a-100a0a0", // full black
+                HVS_ENABLED: true,
+                SCALING: 6,
+                Z_LAYER: 42,
+                DONT_FADE: true,
+                DONT_ENTER: true,
+            })
+        }
+
+        // 2 gradients on the right side
+        for i in 0..2 {
+            $.add(obj{
+                OBJ_ID: 503, // gradient thingy
+                X: x_off + (19*30)/2 + (4*30)/2, Y: y_off + i*(6*30),
+                ROTATION: 90,
+                GROUPS: [_SCENE_GROUP, _WIPE_SCENE_GROUP],
+                HVS: "0a0a-100a0a0", // full black
+                HVS_ENABLED: true,
+                SCALING: 6,
+                Z_LAYER: 42,
+                DONT_FADE: true,
+                DONT_ENTER: true,
+            })
+        }
+    },
+
+    fade_in_scene,
+
+    with: (tokens, x_off: @number = 0, y_off: @number = 0) {
+        if tokens[0] in ["wipeleft_scene", "wipeleft"] { // treat them as the same thing lmao
+            wipe_left_scene(x_off, y_off)
+        } else if tokens[0] == "dissolve_scene_full" { // basically fade in from black
+            fade_in_scene(x_off, y_off)
+        }
+    },
+}

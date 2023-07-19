@@ -10,10 +10,9 @@ import os
 
 HEIGHT = 30
 
-dir = './images'
+dir = './ddlc-decompiled/images.rpa/images/'
 outDir = './output.txt'
 
-width, height = 0, 0
 frames = {}
 frs = {}
 
@@ -24,14 +23,20 @@ for subdir, dirs, files in os.walk(dir):
         ratio = height / width
         img = cv2.resize(img, (int(HEIGHT * ratio), HEIGHT), interpolation=cv2.INTER_AREA)
         width, height, _ = img.shape
-        frames[file] = img
+        frames[file] = {
+            "image": img,
+            "width": width,
+            "height": height,
+        }
 
 for f in frames.keys():
+    print(f)
     frs[f] = []
+    width, height = frames[f]["width"], frames[f]["height"]
     for x in range(width):
         frs[f].append([])
         for y in range(height):
-            b, g, r = frames[f][x][y]
+            b, g, r = frames[f]["image"][x][y]
             h, s, v = colorsys.rgb_to_hsv(r, g, b)
             if v > 8:
                 frs[f][x].append([int(h*360), int(round(s, 3)*1000), int(round(v/255, 3)*1000)])

@@ -1,0 +1,55 @@
+#[cache_output]
+
+// "constants.spwn" isn't a valid file name, otherwise the cache will get the wrong file
+
+// MODIFIABLE CONSTANTS
+
+PLAYER_NAME = "bombie"
+GENERATE_BACKGROUNDS = true
+
+// from now on you shouldn't modify constants if you don't know what you're doing
+
+_COLOR = ?c
+_OUTLINE_COLOR = ?c
+_CIRCLE_COLOR = ?c
+_RED_COLOR = ?c
+
+// todo: maybe colors need to be perfected
+_COLOR.set(rgb8(186,126,149))           // dialogue box background
+_OUTLINE_COLOR.set(rgb8(255,255,255))   // dialogue box outline
+_CIRCLE_COLOR.set(rgb8(196,129,154))    // dialogue box circles
+_RED_COLOR.set(rgb8(255,0,0))           // just monika
+
+CHARACTERS_TOKENS = ["narrator", "s", "m", "n", "y", "ny", "mc"]
+
+return {
+    PLAYER_NAME,
+    GENERATE_BACKGROUNDS: true,
+
+    _TEXT_GROUP: ?g,
+    _SCENE_GROUP: ?g,
+    _WIPE_SCENE_GROUP: ?g,
+    _NAME_HOLDER_GROUP: ?g,
+    _INVISIBLE_GROUP: ?g,
+    _BACKGROUNDS_GROUP: ?g,
+
+    _COLOR,
+    _OUTLINE_COLOR,
+    _CIRCLE_COLOR,
+    _RED_COLOR,
+
+    PLAYER_SPEED: 8.3705, // slow speed
+    LEVEL_DURATION: 10 * 60, // seconds
+
+    MAIN_CHARACTERS_KEYS: ["s", "m", "n", "y"],
+    CHARACTERS_TOKENS,
+    CHARACTERS_NAMES: [" *empty* ", "Sayori", "Yuri", "Monika", "Natsuki", "Nat & Yuri", PLAYER_NAME],
+    BACKGROUNDS: { // definitions.rpy @ 114
+        residential_day: "bg/residential.png",
+        class_day: "bg/class.png",
+        corridor: "bg/corridor.png",
+        club_day: "bg/club.png",
+    },
+
+    TOKENS: ["scene", CHARACTERS_TOKENS, "$", "show", "hide", "with"].flatten(),
+}

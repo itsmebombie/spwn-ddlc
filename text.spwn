@@ -1,0 +1,384 @@
+#[cache_output]
+
+// on text functions
+extract obj_props
+
+extract import "consts.spwn"
+extract import "utils.spwn"
+
+let current_character = "je moeder"
+
+let CHARACTERS = {
+    narrator: { name: "", },
+    s: { name: "???", pos: {x: 80, y: 50}, group: ?g, visible: false, },
+    m: { name: "Girl 3", pos: {x: 80, y: 50}, group: ?g, visible: false, },
+    n: { name: "Girl 2", pos: {x: 80, y: 50}, group: ?g, visible: false, },
+    y: { name: "Girl 1", pos: {x: 80, y: 50}, group: ?g, visible: false, },
+    ny: { name: "Nat & Yuri", },
+    mc: { name: PLAYER_NAME, },
+}
+
+let x_offset = 35 - 300
+
+increment_y_offset = (number: @number) { x_offset += number }
+get_y_offset = () => x_offset
+
+//    x*0.125     y/7.2    // move units
+//    x*0.375     y/2.4    // obj units
+//    x = 18b    y = 10b   // total grid squares (blocks) per each dimension
+
+tcommon = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
+    x = x_pix*0.125
+    pos = CHARACTERS[char].pos
+
+    if CHARACTERS[char].visible {
+        $.add(obj{
+            OBJ_ID: 1614, // collectable id
+            X: x_off, Y: y_off + get_y_offset() + 300,
+            GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+            SCALING: 6,
+            TARGET: !{
+                -> CHARACTERS[char].group.move(x-pos.x, 50-pos.y, 0.25, EASE_IN)
+                -> CHARACTERS[char].group.alpha(1, 0.25) // placing it here is VERY benefic for the group and obj count
+            },
+            PICKUP_MODE: 2, // toggle
+            ACTIVATE_GROUP: true, // on
+        })
+    } else { // if the character is invisible, move to current position instantly then make it visible
+        $.add(obj{
+            OBJ_ID: 1614, // collectable id
+            X: x_off, Y: y_off + get_y_offset() + 300,
+            GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+            SCALING: 6,
+            TARGET: !{
+                -> CHARACTERS[char].group.move(x-pos.x, 50-pos.y, 0)
+                -> CHARACTERS[char].group.alpha(1, 0.25) // placing it here is VERY benefic for the group and obj count
+            },
+            PICKUP_MODE: 2, // toggle
+            ACTIVATE_GROUP: true, // on
+        })
+    }
+    
+    CHARACTERS[char].visible = true
+    CHARACTERS[char].pos = {x: x, y: 50}
+}
+
+tinstant = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
+    x = x_pix*0.125
+    pos = CHARACTERS[char].pos
+
+    $.add(obj{
+        OBJ_ID: 1614, // collectable id
+        X: x_off, Y: y_off + get_y_offset() + 300,
+        GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+        SCALING: 6,
+        TARGET: !{
+            -> CHARACTERS[char].group.move(x-pos.x, 50-pos.y, 0)
+        },
+        PICKUP_MODE: 2, // toggle
+        ACTIVATE_GROUP: true, // on
+    })
+    
+    CHARACTERS[char].visible = true
+    CHARACTERS[char].pos = {x: x, y: 50}
+}
+
+focus = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
+    x = x_pix*0.125
+    pos = CHARACTERS[char].pos
+
+    $.add(obj{
+        OBJ_ID: 1614, // collectable id
+        X: x_off, Y: y_off + get_y_offset() + 300,
+        GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+        SCALING: 6,
+        TARGET: !{
+            -> CHARACTERS[char].group.move(x-pos.x, 55-pos.y, 0.25, EASE_IN)
+            -> CHARACTERS[char].group.alpha(1, 0.25) // placing it here is VERY benefic for the group and obj count
+        },
+        PICKUP_MODE: 2, // toggle
+        ACTIVATE_GROUP: true, // on
+    })
+    
+    CHARACTERS[char].visible = true
+    CHARACTERS[char].pos = {x: x, y: 55}
+}
+
+sink = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
+    x = x_pix*0.125
+    pos = CHARACTERS[char].pos
+
+    $.add(obj{
+        OBJ_ID: 1614, // collectable id
+        X: x_off, Y: y_off + get_y_offset() + 300,
+        GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+        SCALING: 6,
+        TARGET: !{
+            -> CHARACTERS[char].group.move(x-pos.x, 45-pos.y, 0.5, EASE_IN)
+        },
+        PICKUP_MODE: 2, // toggle
+        ACTIVATE_GROUP: true, // on
+    })
+    
+    CHARACTERS[char].visible = true
+    CHARACTERS[char].pos = {x: x, y: 45}
+} 
+
+hop = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
+    x = x_pix*0.125
+    pos = CHARACTERS[char].pos
+
+    group = ?g
+    $.add(obj{
+        OBJ_ID: 1614, // collectable id
+        X: x_off, Y: y_off + get_y_offset() + 300,
+        GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+        SCALING: 6,
+        TARGET: !{
+            -> CHARACTERS[char].group.move(0, 10, 0.1, EASE_OUT)
+            // dont remove the arrows or the optimizer is gonna fuck everything up
+            // somehow it works without the arrows anyways so thats nice yk
+            -> CHARACTERS[char].group.move(0, -10, 0.2, EASE_IN)
+        },
+        PICKUP_MODE: 2, // toggle
+        ACTIVATE_GROUP: true, // on
+    })
+
+    CHARACTERS[char].visible = true
+} 
+
+leftin = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
+    x = x_pix*0.125
+    pos = CHARACTERS[char].pos
+
+    $.add(obj{
+        OBJ_ID: 1614, // collectable id
+        X: x_off, Y: y_off + get_y_offset() + 300,
+        GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+        SCALING: 6,
+        TARGET: !{
+            -> CHARACTERS[char].group.move(-37.5-pos.x, 50-pos.y, 0)
+            -> CHARACTERS[char].group.move(x, 0, 0.25, EASE_IN)
+        },
+        PICKUP_MODE: 2, // toggle
+        ACTIVATE_GROUP: true, // on
+    })
+    
+    CHARACTERS[char].visible = true
+    CHARACTERS[char].pos = {x: -37.5, y: 50}
+}
+
+thide = (char, x_off: @number = 0, y_off: @number = 0) {
+    $.add(obj{
+        OBJ_ID: 1614, // collectable id
+        X: x_off, Y: y_off + get_y_offset() + 300,
+        GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+        SCALING: 6,
+        TARGET: !{
+            -> CHARACTERS[char].group.move(0, -5, 0.25, EASE_IN)
+            -> CHARACTERS[char].group.alpha(0, 0.25)
+        },
+        PICKUP_MODE: 2, // toggle
+        ACTIVATE_GROUP: true, // on
+    })
+
+    CHARACTERS[char].visible = false
+    CHARACTERS[char].pos = {x: CHARACTERS[char].pos.x, y: CHARACTERS[char].pos.y - 5}
+}
+
+lhide = (char, x_off: @number = 0, y_off: @number = 0) {
+    pos = CHARACTERS[char].pos
+
+    $.add(obj{
+        OBJ_ID: 1614, // collectable id
+        X: x_off, Y: y_off + get_y_offset() + 300,
+        GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+        SCALING: 6,
+        TARGET: !{
+            CHARACTERS[char].group.move(-37.5 - pos.x, 0, 0.25, EASE_OUT)
+        },
+        PICKUP_MODE: 2, // toggle
+        ACTIVATE_GROUP: true, // on
+    })
+
+    CHARACTERS[char].visible = false
+    CHARACTERS[char].pos = {x: -37.5, y: CHARACTERS[char].pos.y}
+}
+
+return {
+    show_character: (tokens, x_off: @number = 0, y_off: @number = 0) {
+        // show sayori zorder 1 at thide (example command thing)
+        // not sure if i currently need zorder so im gonna skip that
+    
+        char_name = tokens[0] // current character's name
+        char = char_name[0] // get the first letter of the character's name
+        char_index = tokens.index("at") // get the index of "at"
+    
+        // the characetr gets shown in tcommon() and focus()
+    
+        if char_index != null && char_index < tokens.length - 1 {
+            transform_type = tokens[char_index + 1]
+            
+            match transform_type {
+                =="t41": tcommon(char, 200, x_off, y_off),
+                =="t42": tcommon(char, 493, x_off, y_off),
+                =="t43": tcommon(char, 786, x_off, y_off),
+                =="t44": tcommon(char, 1080, x_off, y_off),
+                =="t31": tcommon(char, 240, x_off, y_off),
+                =="t32": tcommon(char, 640, x_off, y_off),
+                =="t33": tcommon(char, 1040, x_off, y_off),
+                =="t21": tcommon(char, 400, x_off, y_off),
+                =="t22": tcommon(char, 880, x_off, y_off),
+                =="t11": tcommon(char, 640, x_off, y_off),
+    
+                =="i41": tinstant(char, 200, x_off, y_off),
+                =="i42": tinstant(char, 493, x_off, y_off),
+                =="i43": tinstant(char, 786, x_off, y_off),
+                =="i44": tinstant(char, 1080, x_off, y_off),
+                =="i31": tinstant(char, 240, x_off, y_off),
+                =="i32": tinstant(char, 640, x_off, y_off),
+                =="i33": tinstant(char, 1040, x_off, y_off),
+                =="i21": tinstant(char, 400, x_off, y_off),
+                =="i22": tinstant(char, 880, x_off, y_off),
+                =="i11": tinstant(char, 640, x_off, y_off),
+    
+                =="f41": focus(char, 200, x_off, y_off),
+                =="f42": focus(char, 493, x_off, y_off),
+                =="f43": focus(char, 786, x_off, y_off),
+                =="f44": focus(char, 1080, x_off, y_off),
+                =="f31": focus(char, 240, x_off, y_off),
+                =="f32": focus(char, 640, x_off, y_off),
+                =="f33": focus(char, 1040, x_off, y_off),
+                =="f21": focus(char, 400, x_off, y_off),
+                =="f22": focus(char, 880, x_off, y_off),
+                =="f11": focus(char, 640, x_off, y_off),
+    
+                =="s41": sink(char, 200, x_off, y_off),
+                =="s42": sink(char, 493, x_off, y_off),
+                =="s43": sink(char, 786, x_off, y_off),
+                =="s44": sink(char, 1080, x_off, y_off),
+                =="s31": sink(char, 240, x_off, y_off),
+                =="s32": sink(char, 640, x_off, y_off),
+                =="s33": sink(char, 1040, x_off, y_off),
+                =="s21": sink(char, 400, x_off, y_off),
+                =="s22": sink(char, 880, x_off, y_off),
+                =="s11": sink(char, 640, x_off, y_off),
+    
+                =="h41": hop(char, 200, x_off, y_off),
+                =="h42": hop(char, 493, x_off, y_off),
+                =="h43": hop(char, 786, x_off, y_off),
+                =="h44": hop(char, 1080, x_off, y_off),
+                =="h31": hop(char, 240, x_off, y_off),
+                =="h32": hop(char, 640, x_off, y_off),
+                =="h33": hop(char, 1040, x_off, y_off),
+                =="h21": hop(char, 400, x_off, y_off),
+                =="h22": hop(char, 880, x_off, y_off),
+                =="h11": hop(char, 640, x_off, y_off),
+    
+                =="l41": leftin(char, 200, x_off, y_off),
+                =="l42": leftin(char, 493, x_off, y_off),
+                =="l43": leftin(char, 786, x_off, y_off),
+                =="l44": leftin(char, 1080, x_off, y_off),
+                =="l31": leftin(char, 240, x_off, y_off),
+                =="l32": leftin(char, 640, x_off, y_off),
+                =="l33": leftin(char, 1040, x_off, y_off),
+                =="l21": leftin(char, 400, x_off, y_off),
+                =="l22": leftin(char, 880, x_off, y_off),
+                =="l11": leftin(char, 640, x_off, y_off),
+    
+                =="thide": thide(char, x_off, y_off),
+                =="lhide": lhide(char, x_off, y_off),
+            }
+        }
+    },
+
+    say_narrator: (command, x_off: @number = 0, y_off: @number = 0) {
+        increment_y_offset(300)
+        
+        if current_character != "narrator" { // checks if the last character was the narrator
+            // if it wasnt then make the name holder thingy dissappear
+            $.add(obj{
+                OBJ_ID: 1614, // collectable id
+                X: x_off, Y: y_off + get_y_offset(),
+                GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+                SCALING: 6,
+                TARGET: _NAME_HOLDER_GROUP,
+                PICKUP_MODE: 2, // toggle trigger
+                ACTIVATE_GROUP: false, // on
+            })
+        }
+
+        current_character = "narrator"
+        $.add(obj{ // text
+            OBJ_ID: 914,
+            X: x_off, Y: y_off + get_y_offset(),
+            SCALING: 0.66,
+            GROUPS: [_TEXT_GROUP, _SCENE_GROUP],
+            DONT_FADE: true,
+            DONT_ENTER: true,
+            TEXT: $.b64encode(split_into_lines(command.replace('"', "").replace("\\[player\\]", PLAYER_NAME))).replace("/", "_").replace("\\+", "-")
+        })
+    },
+
+    say_character: (command, tokens, x_off: @number = 0, y_off: @number = 0, speaker_x_off: @number = 0, speaker_y_off: @number = 0) {
+        increment_y_offset(300)
+
+        if current_character == "narrator" { // checks if the last character was the narrator
+            // if it was then make the name holder thingy appear
+            $.add(obj{
+                OBJ_ID: 1614, // collectable id
+                X: x_off, Y: y_off + get_y_offset(),
+                GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+                SCALING: 6,
+                TARGET: _NAME_HOLDER_GROUP,
+                PICKUP_MODE: 2, // toggle trigger
+                ACTIVATE_GROUP: true, // on
+            })
+        }
+
+        current_character = command
+        $.add(obj{ // text
+            OBJ_ID: 914,
+            X: x_off, Y: y_off + get_y_offset(),
+            SCALING: 0.66,
+            GROUPS: [_TEXT_GROUP, _SCENE_GROUP],
+            DONT_FADE: true,
+            DONT_ENTER: true,
+            TEXT: $.b64encode(split_into_lines(tokens[-1].replace("\\[player\\]", PLAYER_NAME))).replace("/", "_").replace("\\+", "-")
+        })
+
+        $.add(obj{ // speaker name
+            OBJ_ID: 914,
+            X: speaker_x_off, Y: speaker_y_off + get_y_offset(),
+            SCALING: 0.66,
+            GROUPS: [_TEXT_GROUP, _SCENE_GROUP],
+            DONT_FADE: true,
+            DONT_ENTER: true,
+            TEXT: $.b64encode(CHARACTERS[current_character].name).replace("/", "_").replace("\\+", "-")
+        })
+    },
+    
+    hide_character: (tokens) {
+        // hide the character
+        CHARACTERS[tokens[0][0]].visible = false
+    },
+
+    get_character: (key: @string) {
+        return CHARACTERS[key]
+    },
+
+    python_single_line: (tokens) {
+        // return if the line is not setting a variable (change later)
+        if !("=" in tokens) { return }
+        variable = tokens[0]
+        value = tokens[2]
+
+        // s_name = "Sayori"
+        if variable.substr(1, 6) == "_name" { // if it sets someone's name
+            CHARACTERS[variable[0]].name = value.replace('"', "").replace("'", "")
+        }
+    },
+
+    increment_y_offset,
+    get_y_offset,
+}
