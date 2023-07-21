@@ -231,7 +231,16 @@ return {
                     =="l": leftin,
                 }
                 // if we can find a formula we could make this even shorter
-                new_position = match [quantity,position] {
+                quantity_num = @number(quantity)
+                position_index = @number(position) - 1
+
+                new_position = match quantity_num {
+                    ==4: 200 + position_index * 293.333,    // this is off by 0.333 in the worst case
+                    ==3: 240 + position_index * 400,        // this is perfect
+                    ==2: 400 + position_index * 440,        // also pefect
+                    ==1: 640,                               // ngl something needs to fuck up hard for this to be wrong
+                    /*
+                    // original values
                     ==["4","1"]: 200,
                     ==["4","2"]: 493,
                     ==["4","3"]: 786,
@@ -242,8 +251,9 @@ return {
                     ==["2","1"]: 400,
                     ==["2","2"]: 880,
                     ==["1","1"]: 640,
+                    */
                     _: () {
-                        throw "got '{}' instead of '<char><numb><numb>'".fmt(transform_type)
+                        throw "invalid input quantity '{}', expected a number from 1 to 4".fmt(transform_type)
                     } ()
                 }
                 return macro(char, new_position, x_off, y_off)
