@@ -10,7 +10,9 @@ import os
 
 HEIGHT = 30
 
-dir = './images'
+allowed_files = ["class.png", "club.png", "corridor.png", "residential.png"]
+
+dir = './ddlc-decompiled/images.rpa/images/bg'
 outDir = './output.txt'
 
 width, height = 0, 0
@@ -19,12 +21,14 @@ frs = {}
 
 for subdir, dirs, files in os.walk(dir):
     for file in files:
+        if file not in allowed_files: continue
+
         img = cv2.imread(os.path.join(subdir, file))
         width, height, _ = img.shape
         ratio = height / width
         img = cv2.resize(img, (int(HEIGHT * ratio), HEIGHT), interpolation=cv2.INTER_AREA)
         width, height, _ = img.shape
-        frames[file] = img
+        frames["bg/"+file] = img # :troll:
 
 for f in frames.keys():
     frs[f] = []

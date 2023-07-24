@@ -1,27 +1,33 @@
 gs = import gamescene
 extract obj_props
 
-lines = $.readfile("0.txt").split("\r\n")
+lines = $.readfile("./ddlc-decompiled/scripts.rpa/script-ch0.rpy").split("\r\n")
 
 PLAYER_NAME = "bombie"
 
 _TEXT_GROUP = ?g
-_SCENE_GROUP = ?g
 _WIPE_SCENE_GROUP = ?g
 _NAME_HOLDER_GROUP = ?g
 _INVISIBLE_GROUP = ?g
-_BACKGROUNDS_GROUP = ?g
+let _TEXT_SECTION_GROUPS = [?g]
+
+// these are static because of the image caching thing
+_BACKGROUNDS_GROUP = 1g
+_SCENE_GROUP = 2g
 let _BG_GROUPS = []
 
 _COLOR = 2c
 _OUTLINE_COLOR = 1c
 _CIRCLE_COLOR = 3c
-_RED_COLOR = 4c
+_RED_COLOR = 4c // this needs to be static in order for image cache to work
 
 PLAYER_SPEED = 8.3705 // slow speed
 LEVEL_DURATION = 10 * 60 // seconds
+TAB_SIZE = 4
 
 GENERATE_BACKGROUNDS = true
+CACHE_BACKGROUNDS = true
+READ_CACHED_BACKGROUNDS = true // disable this if you dont have a file named "./cached_output.txt" that you didnt make
 
 let CHARACTERS = {
     narrator: { name: "", },
@@ -37,6 +43,10 @@ MAIN_CHARACTERS_KEYS = ["s", "m", "n", "y"]
 CHARACTERS_TOKENS = ["narrator", "s", "m", "n", "y", "ny", "mc"]
 CHARACTERS_NAMES = [" *empty* ", "Sayori", "Yuri", "Monika", "Natsuki", "Nat & Yuri", PLAYER_NAME]
 BACKGROUNDS = ["residential_day", "class_day", "club_day", "corridor"]
+BACKGROUND_FILE_NAMES = ["bg/residential.png", "bg/class.png", "bg/club.png", "bg/corridor.png"]
+
+LABELS_EXCLUSION_LIST = ["ch0_kill"]
+WITH_TOKEN_WAIT_TIMES = {"wipeleft_scene": 1, "wipeleft": 0.2}
 
 TOKENS = ["scene", CHARACTERS_TOKENS, "$", "show", "hide", "with"].flatten()
 
@@ -44,33 +54,51 @@ let current_character = "your mother"
 let current_bg = "residential_day"
 let words = 0
 
+in_scene_transition_counter = counter(false)
 
 
 
-output = $.readfile("./output.txt", "json")
+let cached_bgs = {}
+readed_cached_bgs = $.readfile("./cache_output.txt", "json") if READ_CACHED_BACKGROUNDS else {} // misspelled ikik but it makes more sense than "read"
+image_output = match GENERATE_BACKGROUNDS { ==true: $.readfile("./output.txt", "json") }
+
 image = (file_name: @string, x_off: @number = 0, y_off: @number = 0) {
     if GENERATE_BACKGROUNDS == false { return }
 
-    frame = output[file_name].reverse()
-    _BG_GROUPS.push(?g)
+    if CACHE_BACKGROUNDS { let cached_bgs[file_name] = "" }
+    frame = image_output[file_name].reverse()
+    _BG_GROUPS.push(@group(998 - _BG_GROUPS.length))
 
+    if READ_CACHED_BACKGROUNDS && readed_cached_bgs.get(file_name, default=null) != null {
+        $.add(obj{HVS: ";"+readed_cached_bgs[file_name].replace("\\$", "1,211,24,-42,25,-2,32,0.335,41,1,21,4,57,1.2.1001.")+"1,1,2,-999"})
+        cached_bgs[file_name] += readed_cached_bgs[file_name]
+
+        $.print(file_name, " added from cache")
+        return
+    }
+
+    let bg_objs_to_cache = ""
     for j in 0..frame.length {
         for i in frame[j].length..0 {
             [h, s, v] = frame[j][i]
 
-            $.add(obj{
+            temp_obj = obj{
                 OBJ_ID: 211,
-                X: x_off + i*10, Y: y_off + j*10 + (_BG_GROUPS.length-1)*1500,
-                GROUPS: [_BACKGROUNDS_GROUP, _SCENE_GROUP, _BG_GROUPS[-1], _BACKGROUNDS_GROUP],
                 Z_LAYER: -42,
                 Z_ORDER: -2,
-                SCALING: 0.335, // 1/10+0.01,
-                COLOR: _RED_COLOR,
-                HVS: @string(h)+"a"+@string(s/1000)+"a"+@string(v/1000+0.02)+"a0a0",
+                SCALING: 0.3345,
                 HVS_ENABLED: true,
-            })
+                COLOR: _RED_COLOR,
+                GROUPS: [_BACKGROUNDS_GROUP, _SCENE_GROUP, 1001g, _BG_GROUPS[-1]],
+                HVS: @string(h)+"a"+@string(s/1000)+"a"+@string(v/1000+0.02)+"a0a0",
+                X: x_off + i*10, Y: y_off + j*10 + (_BG_GROUPS.length-1)*300,
+            }
+
+            temp_obj.add()
+            bg_objs_to_cache += @string(temp_obj)
         }
     }
+    cached_bgs[file_name] = bg_objs_to_cache.replace("1,211,24,-42,25,-2,32,0\\.335,41,1,21,4,57,1\\.2\\.1001\\.", "$").replace("(?<=\\.\\d{3})\\d+", "")
     $.print(file_name, " added")
 }
 
@@ -83,7 +111,7 @@ image = (file_name: @string, x_off: @number = 0, y_off: @number = 0) {
 
 generate_line_tokens = (line: @string) {
     splitted_strings = line.split("\"")
-    if splitted_strings.length % 2 != 1 { throw "invalid string at line"+@string(lines.find(line)) }
+    if splitted_strings.length % 2 == 0 { throw "invalid string at line"+@string(lines.find(line)) }
 
     let tokens = []
     if splitted_strings.length > 1 {
@@ -100,7 +128,47 @@ generate_line_tokens = (line: @string) {
         tokens = line.split(" ")
     }
     
-    return tokens.filter(el => el != "")
+    // count the amount of spaces at the beggining of the line
+    let spaces = 0
+    for char in tokens {
+        if char != "" { break } // yeah
+        spaces ++
+    }
+
+
+    return [tokens.filter(el => el != ""), (spaces / TAB_SIZE).round()]
+}
+
+
+let i = 35-300
+
+add_section = (x_off: @number = 0, y_off: @number = 0) {
+    // because gd renders text no matter where it is so we need to toggle every 16384 chars
+    // but 2222 words is good enough
+    if words % 2222 == 2221 {
+        $.add(obj{
+            OBJ_ID: 1614, // collectable id
+            X: x_off, Y: y_off + i,
+            GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+            SCALING: 6,
+            TARGET: _TEXT_SECTION_GROUPS[-1],
+            PICKUP_MODE: 2, // toggle trigger
+            ACTIVATE_GROUP: false, // off
+        })
+
+        _TEXT_SECTION_GROUPS.push(?g)
+        $.print("added a section") // $.print("SEX!! 😋😋😋")
+
+        $.add(obj{
+            OBJ_ID: 1614, // collectable id
+            X: x_off, Y: y_off + i,
+            GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+            SCALING: 6,
+            TARGET: _TEXT_SECTION_GROUPS[-1],
+            PICKUP_MODE: 2, // toggle trigger
+            ACTIVATE_GROUP: true, // on
+        })
+    }
 }
 
 
@@ -109,9 +177,11 @@ split_into_lines = (str: @string) {
 
     for word in str.split(" ") {
         words ++
+        add_section(300, 13)
 
-        lines[-1] += word + " "
-        if lines[-1].length >= 55 { lines.push("") }
+        word_plus_space = word + " "
+        if lines[-1].length + word_plus_space.length / 2 >= 57 { lines.push("") }
+        lines[-1] += word_plus_space
     }
     
     return lines.join("\n")
@@ -119,13 +189,11 @@ split_into_lines = (str: @string) {
 
 
 
-let i = 35-300
-
 say_character = (command, tokens, x_off: @number = 0, y_off: @number = 0, speaker_x_off: @number = 0, speaker_y_off: @number = 0) {
     i+=300
 
     if current_character == "narrator" { // checks if the last character was the narrator
-        // if it was then make the name holder thingy appear
+        // if it was, make the name holder thingy appear
         $.add(obj{
             OBJ_ID: 1614, // collectable id
             X: x_off, Y: y_off + i,
@@ -141,18 +209,18 @@ say_character = (command, tokens, x_off: @number = 0, y_off: @number = 0, speake
     $.add(obj{ // text
         OBJ_ID: 914,
         X: x_off, Y: y_off + i,
-        SCALING: 0.66,
-        GROUPS: [_TEXT_GROUP, _SCENE_GROUP],
+        SCALING: 0.57,
+        GROUPS: [_TEXT_GROUP, _SCENE_GROUP, _TEXT_SECTION_GROUPS[-1]],
         DONT_FADE: true,
         DONT_ENTER: true,
         TEXT: $.b64encode(split_into_lines(tokens[-1].replace("\\[player\\]", PLAYER_NAME))).replace("/", "_").replace("\\+", "-")
     })
-
+    
     $.add(obj{ // speaker name
         OBJ_ID: 914,
         X: speaker_x_off, Y: speaker_y_off + i,
-        SCALING: 0.66,
-        GROUPS: [_TEXT_GROUP, _SCENE_GROUP],
+        SCALING: 0.57,
+        GROUPS: [_TEXT_GROUP, _SCENE_GROUP, _TEXT_SECTION_GROUPS[-1]],
         DONT_FADE: true,
         DONT_ENTER: true,
         TEXT: $.b64encode(CHARACTERS[current_character].name).replace("/", "_").replace("\\+", "-")
@@ -181,7 +249,7 @@ say_narrator = (command, x_off: @number = 0, y_off: @number = 0) {
         OBJ_ID: 914,
         X: x_off, Y: y_off + i,
         SCALING: 0.66,
-        GROUPS: [_TEXT_GROUP, _SCENE_GROUP],
+        GROUPS: [_TEXT_GROUP, _SCENE_GROUP, _TEXT_SECTION_GROUPS[-1]],
         DONT_FADE: true,
         DONT_ENTER: true,
         TEXT: $.b64encode(split_into_lines(command.replace('"', "").replace("\\[player\\]", PLAYER_NAME))).replace("/", "_").replace("\\+", "-")
@@ -189,35 +257,74 @@ say_narrator = (command, x_off: @number = 0, y_off: @number = 0) {
 }
 
 
-set_bg = (bg_name, x_off: @number = 0, y_off: @number = 0) {
-    if current_bg != bg_name { // checks if the last bg is the current bg
-        // if not, toggle off all bgs and toggle on only the one we need
+set_bg = (bg_name, next_line, x_off: @number = 0, y_off: @number = 0) {
+    if current_bg == bg_name { return } // checks if the last bg is the current bg
+
+    wait_time = WITH_TOKEN_WAIT_TIMES.get(next_line[0][1], default=0) if next_line[0][0] == "with" else 0
+
+    temp_func = !{ -> in_scene_transition_counter ++; -> _TEXT_GROUP.alpha(0, 0.25) } // started transition
+    temp_group = temp_func.start_group
+
+    change_bgs = !{
+        -> _BACKGROUNDS_GROUP.move(0, 100 * BACKGROUNDS.index(current_bg), 0) // move to first bg
+        -> _BACKGROUNDS_GROUP.move(0, -100 * BACKGROUNDS.index(bg_name), 0) // move to desired bg
+        -> in_scene_transition_counter -- // done transitioning
+        -> _TEXT_GROUP.alpha(1, 0)
+    }
+
+    // we have to do wait() manually because of the fucking optimizer :skull:
+    $.add(obj{
+        OBJ_ID: 1268, // spawn trigger id
+        X: 400, Y: 400,
+        GROUPS: temp_group,
+        SPAWN_TRIGGERED: true,
+        SPAWN_DURATION: wait_time,
+        TARGET: change_bgs,
+    })
+
+    // hide all characters while also hopefully not using too many groups and not breaking the optimizer
+    // HOLY SHIT ITS USING 0 GROUPS
+    for char in MAIN_CHARACTERS_KEYS {
+        if !CHARACTERS[char].visible { continue }
+        CHARACTERS[char].visible = false
 
         $.add(obj{
-            OBJ_ID: 1614, // collectable id
-            X: x_off, Y: y_off + i + 300,
-            GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
-            SCALING: 6,
-            TARGET: !{
-                _BACKGROUNDS_GROUP.move(0, 500 * BACKGROUNDS.index(current_bg), 0) // move to first bg
-                _BACKGROUNDS_GROUP.move(0, -500 * BACKGROUNDS.index(bg_name), 0) // move to desired bg
-            },
-            PICKUP_MODE: 2, // toggle
-            ACTIVATE_GROUP: true, // on
+            OBJ_ID: 1007, // alpha trigger id
+            X: 500, Y: 400,
+            GROUPS: change_bgs.start_group,
+            SPAWN_TRIGGERED: true,
+            TARGET: CHARACTERS[char].group,
+            DURATION: 0,
+            OPACITY: 0,
         })
     }
+    // end of hiding all characters
+
+    $.add(obj{
+        OBJ_ID: 1614, // collectable id
+        X: x_off, Y: y_off + i + 300,
+        GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+        SCALING: 6,
+        TARGET: temp_func,
+        PICKUP_MODE: 2, // toggle
+        ACTIVATE_GROUP: true, // on
+    })
 
     current_bg = bg_name
 }
 
 
-set_scene = (tokens, x_off: @number = 0, y_off: @number = 0) {
+set_scene = (tokens, next_line, x_off: @number = 0, y_off: @number = 0) {
     if tokens[0] == "bg" { // in the first day, tokens[0] is always "bg"
-        set_bg(tokens[1], x_off, y_off)
+        set_bg(tokens[1], next_line, x_off, y_off)
     }
 }
 
 
+
+fade_in_bgs_function = !{ // group saving goes brrr
+    -> _BACKGROUNDS_GROUP.alpha(1, 0.25)
+}
 
 fade_in_scene = (x_off: @number = 0, y_off: @number = 0) {
     $.add(obj{
@@ -225,9 +332,7 @@ fade_in_scene = (x_off: @number = 0, y_off: @number = 0) {
         X: x_off, Y: y_off + i + 300,
         GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
         SCALING: 6,
-        TARGET: !{
-            -> _BACKGROUNDS_GROUP.alpha(1, 0.25) // fade in bgs
-        },
+        TARGET: fade_in_bgs_function,
         PICKUP_MODE: 2, // toggle
         ACTIVATE_GROUP: true, // on
     })
@@ -296,9 +401,44 @@ wipe_left_scene = (x_off: @number = 0, y_off: @number = 0) {
         GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
         SCALING: 6,
         TARGET: !{
-            -> _WIPE_SCENE_GROUP.move(460, 0, 0) // move behind the player
-            -> _WIPE_SCENE_GROUP.move(-460, 0, 1.25, EASE_IN) // move it to the right
+            -> _WIPE_SCENE_GROUP.move(-460, 0, 0) // move behind the player
+            -> _WIPE_SCENE_GROUP.move(460, 0, 1.5, EASE_IN) // move it to the right
         },
+        PICKUP_MODE: 2, // toggle
+        ACTIVATE_GROUP: true, // on
+    })
+}
+
+wipe_left = (x_off: @number = 0, y_off: @number = 0) {
+    temp_group = ?g
+
+    // we have to do wait() manually because of the fucking optimizer :skull:
+    $.add(obj{
+        OBJ_ID: 1268, // spawn trigger id
+        X: 450, Y: 450,
+        GROUPS: temp_group,
+        SPAWN_TRIGGERED: true,
+        SPAWN_DURATION: 0,
+        TARGET: !{
+            -> _BACKGROUNDS_GROUP.alpha(0, 0.2) // fade out
+        },
+    })
+
+    $.add(obj{
+        OBJ_ID: 1268, // spawn trigger id
+        X: 450, Y: 450,
+        GROUPS: temp_group,
+        SPAWN_TRIGGERED: true,
+        SPAWN_DURATION: 0.2,
+        TARGET: fade_in_bgs_function,
+    })
+
+    $.add(obj{
+        OBJ_ID: 1614, // collectable id
+        X: x_off, Y: y_off + i + 300,
+        GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+        SCALING: 6,
+        TARGET: temp_group,
         PICKUP_MODE: 2, // toggle
         ACTIVATE_GROUP: true, // on
     })
@@ -306,10 +446,11 @@ wipe_left_scene = (x_off: @number = 0, y_off: @number = 0) {
 
 
 with = (tokens, x_off: @number = 0, y_off: @number = 0) {
-    if tokens[0] in ["wipeleft_scene", "wipeleft"] { // treat them as the same thing lmao
-        wipe_left_scene(x_off, y_off)
-    } else if tokens[0] == "dissolve_scene_full" { // basically fade in from black
-        fade_in_scene(x_off, y_off)
+    // syncing with the bg happens in the bg change macro
+    match tokens[0] {
+        =="wipeleft_scene": wipe_left_scene(x_off, y_off),
+        =="dissolve_scene_full": fade_in_scene(x_off, y_off),
+        =="wipeleft": wipe_left(x_off, y_off), // dont actually wipe left, just fade out and in the bg lmao
     }
 }
 
@@ -622,8 +763,8 @@ generate_borders = (x_off: @number = 0, y_off: @number = 0) {
         })
         $.add(obj{
             OBJ_ID: 211, // white block
-            X: x_off + (18*30)/2 + (6*30)/2 - 5, Y: 
-            y_off+180*i,
+            X: x_off + (18*30)/2 + (6*30)/2 - 5, 
+            Y: y_off+180*i,
             GROUPS: [_SCENE_GROUP],
             Z_LAYER: 69,
             SCALING: 6,
@@ -668,6 +809,24 @@ generate_borders = (x_off: @number = 0, y_off: @number = 0) {
 
 
 
+// group saves
+
+// dont remove the arrows or the optimizer is gonna fuck everything up
+// somehow it works without the arrows anyways so thats nice yk (future bombie here idk if thats true so dont do it)
+hop_funcs = { // this saves a whole 1 group in day 1 :rofl: (it might save more for the whole act)
+    s: !{ -> CHARACTERS.s.group.move(0, 10, 0.1, EASE_OUT); -> CHARACTERS.s.group.move(0, -10, 0.2, EASE_IN) },
+    y: !{ -> CHARACTERS.y.group.move(0, 10, 0.1, EASE_OUT); -> CHARACTERS.y.group.move(0, -10, 0.2, EASE_IN) },
+    n: !{ -> CHARACTERS.n.group.move(0, 10, 0.1, EASE_OUT); -> CHARACTERS.n.group.move(0, -10, 0.2, EASE_IN) },
+    m: !{ -> CHARACTERS.m.group.move(0, 10, 0.1, EASE_OUT); -> CHARACTERS.m.group.move(0, -10, 0.2, EASE_IN) },
+}
+
+hide_char_funcs = { // this saved 30 whole groups WHAT
+    s: !{ -> CHARACTERS.s.group.move(0, -5, 0.25, EASE_IN); -> CHARACTERS.s.group.alpha(0, 0.25) },
+    y: !{ -> CHARACTERS.y.group.move(0, -5, 0.25, EASE_IN); -> CHARACTERS.y.group.alpha(0, 0.25) },
+    n: !{ -> CHARACTERS.n.group.move(0, -5, 0.25, EASE_IN); -> CHARACTERS.n.group.alpha(0, 0.25) },
+    m: !{ -> CHARACTERS.m.group.move(0, -5, 0.25, EASE_IN); -> CHARACTERS.m.group.alpha(0, 0.25) },
+}
+
 
 //    x*0.125     y/7.2    // move units
 //    x*0.375     y/2.4    // obj units
@@ -685,7 +844,6 @@ tcommon = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
             SCALING: 6,
             TARGET: !{
                 -> CHARACTERS[char].group.move(x-pos.x, 50-pos.y, 0.25, EASE_IN)
-                -> CHARACTERS[char].group.alpha(1, 0.25) // placing it here is VERY benefic for the group and obj count
             },
             PICKUP_MODE: 2, // toggle
             ACTIVATE_GROUP: true, // on
@@ -697,7 +855,8 @@ tcommon = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
             GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
             SCALING: 6,
             TARGET: !{
-                -> CHARACTERS[char].group.move(x-pos.x, 50-pos.y, 0)
+                -> CHARACTERS[char].group.move(x-pos.x, 48-pos.y, 0)
+                -> CHARACTERS[char].group.move(0, 2, 0.25, EASE_IN)
                 -> CHARACTERS[char].group.alpha(1, 0.25) // placing it here is VERY benefic for the group and obj count
             },
             PICKUP_MODE: 2, // toggle
@@ -733,18 +892,35 @@ focus = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
     x = x_pix*0.125
     pos = CHARACTERS[char].pos
 
-    $.add(obj{
-        OBJ_ID: 1614, // collectable id
-        X: x_off, Y: y_off + i + 300,
-        GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
-        SCALING: 6,
-        TARGET: !{
-            -> CHARACTERS[char].group.move(x-pos.x, 55-pos.y, 0.25, EASE_IN)
-            -> CHARACTERS[char].group.alpha(1, 0.25) // placing it here is VERY benefic for the group and obj count
-        },
-        PICKUP_MODE: 2, // toggle
-        ACTIVATE_GROUP: true, // on
-    })
+    if CHARACTERS[char].visible {
+        $.add(obj{
+            OBJ_ID: 1614, // collectable id
+            X: x_off, Y: y_off + i + 300,
+            GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+            SCALING: 6,
+            TARGET: !{
+                -> CHARACTERS[char].group.move(x-pos.x, 55-pos.y, 0.25, EASE_IN)
+            },
+            PICKUP_MODE: 2, // toggle
+            ACTIVATE_GROUP: true, // on
+        })
+    } else { // if the character is invisible, move to current position instantly then make it visible
+        $.add(obj{
+            OBJ_ID: 1614, // collectable id
+            X: x_off, Y: y_off + i + 300,
+            GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+            SCALING: 6,
+            TARGET: !{
+                -> CHARACTERS[char].group.move(x-pos.x, 53-pos.y, 0)
+                -> CHARACTERS[char].group.move(0, 2, 0.25, EASE_IN)
+                -> CHARACTERS[char].group.alpha(1, 0.25) // placing it here is VERY benefic for the group and obj count
+                // past bombie, where else would you place it :skull:
+            },
+            PICKUP_MODE: 2, // toggle
+            ACTIVATE_GROUP: true, // on
+        })
+    }
+    
     
     CHARACTERS[char].visible = true
     CHARACTERS[char].pos = {x: x, y: 55}
@@ -760,7 +936,8 @@ sink = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
         GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
         SCALING: 6,
         TARGET: !{
-            -> CHARACTERS[char].group.move(x-pos.x, 45-pos.y, 0.5, EASE_IN)
+            // removed `x-pos.x` in hopes of reducing group usage when i decide to optimize this
+            -> CHARACTERS[char].group.move(0, 45-pos.y, 0.5, EASE_IN)
         },
         PICKUP_MODE: 2, // toggle
         ACTIVATE_GROUP: true, // on
@@ -774,18 +951,12 @@ hop = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
     x = x_pix*0.125
     pos = CHARACTERS[char].pos
 
-    group = ?g
     $.add(obj{
         OBJ_ID: 1614, // collectable id
         X: x_off, Y: y_off + i + 300,
         GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
         SCALING: 6,
-        TARGET: !{
-            -> CHARACTERS[char].group.move(0, 10, 0.1, EASE_OUT)
-            // dont remove the arrows or the optimizer is gonna fuck everything up
-            // somehow it works without the arrows anyways so thats nice yk
-            -> CHARACTERS[char].group.move(0, -10, 0.2, EASE_IN)
-        },
+        TARGET: hop_funcs[char],
         PICKUP_MODE: 2, // toggle
         ACTIVATE_GROUP: true, // on
     })
@@ -820,10 +991,7 @@ thide = (char, x_off: @number = 0, y_off: @number = 0) {
         X: x_off, Y: y_off + i + 300,
         GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
         SCALING: 6,
-        TARGET: !{
-            -> CHARACTERS[char].group.move(0, -5, 0.25, EASE_IN)
-            -> CHARACTERS[char].group.alpha(0, 0.25)
-        },
+        TARGET: hide_char_funcs[char],
         PICKUP_MODE: 2, // toggle
         ACTIVATE_GROUP: true, // on
     })
@@ -938,9 +1106,22 @@ show_character = (tokens, x_off: @number = 0, y_off: @number = 0) {
     }
 }
 
-hide_character = (tokens) {
-    // hide the character
-    CHARACTERS[tokens[0][0]].visible = false
+hide_character = (tokens, x_off: @number = 0, y_off: @number = 0) {
+    char = tokens[0][0]
+    if CHARACTERS[char].visible == false { return }
+
+    $.add(obj{
+        OBJ_ID: 1614, // collectable id
+        X: x_off, Y: y_off + i + 300,
+        GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
+        SCALING: 6,
+        TARGET: hide_char_funcs[char],
+        PICKUP_MODE: 2, // toggle
+        ACTIVATE_GROUP: true, // on
+    })
+
+    CHARACTERS[char].visible = false
+    CHARACTERS[char].pos = {x: CHARACTERS[char].pos.x, y: CHARACTERS[char].pos.y - 5}
 }
 
 
@@ -958,6 +1139,42 @@ python_single_line = (tokens) {
 }
 
 
+let labels = {}
+call_label = (label_name: @string) {
+    let current_code_blocks = []
+    let i_line = 0
+    for line in labels[label_name] {
+        [__tokens, tabs] = labels[label_name][i_line]
+    
+        command = __tokens[0]
+        if !(command in TOKENS) && command[0] != '"' { i_line ++; continue } // if its not a valid token/word
+        tokens = __tokens[1:] // remove the command bit from tokens
+
+        if command == "return" { break }
+
+        match command {
+            in CHARACTERS_TOKENS: say_character(command, tokens, 300, 15, 169, 75),
+            =="scene": set_scene(tokens, labels[label_name][i_line+1], 300, 13),
+            =="show": show_character(tokens, 300, 13),
+            =="hide": hide_character(tokens, 300, 13),
+            =="$": python_single_line(tokens),
+            =="with": with(tokens, 300, 13),
+            =="call": call_label(tokens[0]),
+        }
+        
+        // if narrator
+        if command[0] == "\"" && tokens.length == 0 {
+            say_narrator(command, 300, 13)
+        }
+    
+        // doing it like this cuz u cant break in a match statement lmao
+        // im gonna change this later so it just resumes instead of breaking
+        if command == "call" { break }
+
+        // $.print(modified_line)
+        i_line ++
+    }
+}
 
 
 
@@ -966,7 +1183,10 @@ python_single_line = (tokens) {
 
 
 
-create_scene_wiper_thing(-440, 60)
+
+
+
+create_scene_wiper_thing(1000, 60)
 // make bg invisible
 $.add(obj{
     OBJ_ID: 1007, // alpha trigger
@@ -1007,36 +1227,42 @@ for i in 0..MAIN_CHARACTERS_KEYS.length {
 }
 
 // generate and add all bgs
-for bg in BACKGROUNDS {
+for bg in 0..BACKGROUNDS.length {
     // jpeg(bg+".png", 42, 0)
-    image(bg+".png", 42, 4)
+    image(BACKGROUND_FILE_NAMES[bg], 42, 4)
 }
 
-for line in lines {
-    if line.length == 0 { continue } // skip empty lines
-    if line[0] == "#" { continue } // skip comments
+// all labels, custom for loop
+// let labels = {} // moved to just before call_label()
+let line_idx_for_labels = 0
+while line_idx_for_labels < lines.length - 1 {
+    if !("label" in lines[line_idx_for_labels]) { line_idx_for_labels ++; continue }
 
-    __tokens = generate_line_tokens(line)
+    // we already know the line starts with "label" so we can just gen the tokens
+    [__tokens, label_tabs] = generate_line_tokens(lines[line_idx_for_labels])
 
-    command = __tokens[0]
-    if !(command in TOKENS) && command[0] != '"' { continue } // if its not a valid token/word
-    tokens = __tokens[1:] // remove the command bit from tokens
-    
-    match command {
-        in CHARACTERS_TOKENS: say_character(command, tokens, 300, 13, 169, 73),
-        =="scene": set_scene(tokens, 300, 13),
-        =="show": show_character(tokens, 300, 13),
-        =="hide": hide_character(tokens),
-        =="$": python_single_line(tokens),
-        =="with": with(tokens, 300, 13),
+    if __tokens[0] != "label" { line_idx_for_labels ++; continue } // if the command isnt "label", aka if we found it in a character dialogue or smth
+    label_name = __tokens[1].split(":")[0] // to remove the colon that the lexer didnt remove
+
+    if label_name in LABELS_EXCLUSION_LIST { line_idx_for_labels ++; continue }
+
+    req_tabs = label_tabs + 1
+
+    let labels[label_name] = []
+
+    // check if its in the current label & pregenerate the line tokens while doing so
+    let i_line = line_idx_for_labels
+    for line in lines[line_idx_for_labels + 1:] { // this might be wrong
+        if line.length == 0 { line_idx_for_labels ++; i_line ++; continue } // skip empty lines
+
+        [tokens, tabs] = generate_line_tokens(line)
+        if tabs < req_tabs { line_idx_for_labels = i_line; break } // not in the current label
+        // if tokens[0] == "return" { break } // moved to call_label()
+        labels[label_name].push([tokens, tabs])
+        i_line ++
     }
     
-    // if narrator
-    if command[0] == "\"" && tokens.length == 0 {
-        say_narrator(command, 300, 13)
-    }
-
-    // $.print(modified_line)
+    if label_name == "ch0_main" { call_label(label_name) }
 }
 
 $.add(obj{ // follow player
@@ -1060,11 +1286,19 @@ $.add(obj{ // add invisible trigger at the start
     DURATION: 0,
 })
 
-on(gs.button_a(), !{ // change through dialog boxes
-    _TEXT_GROUP.move(0, -100, 0)
-})
+
+change_dialog = !{ // change through dialog boxes
+    if in_scene_transition_counter == 0 {
+        _TEXT_GROUP.move(0, -100, 0)
+    }
+}
+
+// gonna change soom
+on(gs.button_a(), change_dialog)
+on(gs.button_b(), change_dialog)
 
 generate_dialogue_box()
 generate_borders(302, 60)
 
+if CACHE_BACKGROUNDS { $.writefile("./cache_output.txt", "{"+cached_bgs.map((k, v) => '"'+k+"\": \""+v+'"').join(", ")+"}") }
 $.print("words: ", words)
