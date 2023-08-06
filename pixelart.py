@@ -2,7 +2,6 @@
 # to rewrite it using opencv instead of pillow
 
 import cv2
-import numpy as np
 import colorsys
 import os
 
@@ -12,7 +11,7 @@ HEIGHT = 30
 
 allowed_files = ["class.png", "club.png", "corridor.png", "residential.png"]
 
-dir = './ddlc-decompiled/images.rpa/images/bg'
+dir = './ddlc-decompiled/images.rpa/images'
 outDir = './output.txt'
 
 width, height = 0, 0
@@ -28,7 +27,7 @@ for subdir, dirs, files in os.walk(dir):
         ratio = height / width
         img = cv2.resize(img, (int(HEIGHT * ratio), HEIGHT), interpolation=cv2.INTER_AREA)
         width, height, _ = img.shape
-        frames["bg/"+file] = img # :troll:
+        frames[subdir.replace(dir+os.sep, "")+"/"+file] = img
 
 for f in frames.keys():
     frs[f] = []

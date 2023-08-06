@@ -1,4 +1,5 @@
 gs = import gamescene
+sprites = import "sprites.spwn"
 extract obj_props
 
 lines = $.readfile("./ddlc-decompiled/scripts.rpa/script-ch0.rpy").split("\r\n")
@@ -25,18 +26,18 @@ PLAYER_SPEED = 8.3705 // slow speed
 LEVEL_DURATION = 10 * 60 // seconds
 TAB_SIZE = 4
 
-GENERATE_BACKGROUNDS = true
-CACHE_BACKGROUNDS = true
-READ_CACHED_BACKGROUNDS = true // disable this if you dont have a file named "./cached_output.txt" that you didnt make
+GENERATE_IMAGES = true
+CACHE_IMAGES = true
+READ_CACHED_IMAGES = true // disable this if you dont have a file named "./cached_output.txt" that you didnt make
 
 let CHARACTERS = {
     narrator: { name: "", },
-    s: { name: "???", pos: {x: 80, y: 50}, group: ?g, visible: false, },
-    m: { name: "Girl 3", pos: {x: 80, y: 50}, group: ?g, visible: false, },
-    n: { name: "Girl 2", pos: {x: 80, y: 50}, group: ?g, visible: false, },
-    y: { name: "Girl 1", pos: {x: 80, y: 50}, group: ?g, visible: false, },
+    s: { name:    "???", pos: {x: 80, y: 50}, group: ?g, visible: false, head_group: ?g, l_group: ?g, r_group: ?g, sprite: "", },
+    m: { name: "Girl 3", pos: {x: 80, y: 50}, group: ?g, visible: false, head_group: ?g, l_group: ?g, r_group: ?g, sprite: "", },
+    n: { name: "Girl 2", pos: {x: 80, y: 50}, group: ?g, visible: false, head_group: ?g, l_group: ?g, r_group: ?g, sprite: "", },
+    y: { name: "Girl 1", pos: {x: 80, y: 50}, group: ?g, visible: false, head_group: ?g, l_group: ?g, r_group: ?g, sprite: "", },
     ny: { name: "Nat & Yuri", },
-    mc: { name: PLAYER_NAME, },
+    mc: { name:  PLAYER_NAME, },
 }
 
 MAIN_CHARACTERS_KEYS = ["s", "m", "n", "y"]
@@ -59,19 +60,18 @@ in_scene_transition_counter = counter(false)
 
 
 let cached_bgs = {}
-readed_cached_bgs = $.readfile("./cache_output.txt", "json") if READ_CACHED_BACKGROUNDS else {} // misspelled ikik but it makes more sense than "read"
-image_output = match GENERATE_BACKGROUNDS { ==true: $.readfile("./output.txt", "json") }
+readed_cached_images = $.readfile("./cache_output.txt", "json") if READ_CACHED_IMAGES else {} // misspelled ikik but it makes more sense than "read"
+image_output = match GENERATE_IMAGES { ==true: $.readfile("./output.txt", "json") }
 
-image = (file_name: @string, x_off: @number = 0, y_off: @number = 0) {
-    if GENERATE_BACKGROUNDS == false { return }
+image = (file_name: @string, group: @group, x_off: @number = 0, y_off: @number = 0) {
+    if GENERATE_IMAGES == false { return }
 
-    if CACHE_BACKGROUNDS { let cached_bgs[file_name] = "" }
+    if CACHE_IMAGES { let cached_bgs[file_name] = "" }
     frame = image_output[file_name].reverse()
-    _BG_GROUPS.push(@group(998 - _BG_GROUPS.length))
 
-    if READ_CACHED_BACKGROUNDS && readed_cached_bgs.get(file_name, default=null) != null {
-        $.add(obj{HVS: ";"+readed_cached_bgs[file_name].replace("\\$", "1,211,24,-42,25,-2,32,0.335,41,1,21,4,57,1.2.1001.")+"1,1,2,-999"})
-        cached_bgs[file_name] += readed_cached_bgs[file_name]
+    if READ_CACHED_IMAGES && readed_cached_images.get(file_name, default=null) != null {
+        $.add(obj{HVS: ";"+readed_cached_images[file_name].replace("\\$", "1,211,24,-42,25,-2,32,0.335,41,1,21,4,57,1.2.1001.")+"1,1,2,-999"})
+        cached_bgs[file_name] += readed_cached_images[file_name]
 
         $.print(file_name, " added from cache")
         return
@@ -89,7 +89,7 @@ image = (file_name: @string, x_off: @number = 0, y_off: @number = 0) {
                 SCALING: 0.3345,
                 HVS_ENABLED: true,
                 COLOR: _RED_COLOR,
-                GROUPS: [_BACKGROUNDS_GROUP, _SCENE_GROUP, 1001g, _BG_GROUPS[-1]],
+                GROUPS: [_BACKGROUNDS_GROUP, _SCENE_GROUP, group],
                 HVS: @string(h)+"a"+@string(s/1000)+"a"+@string(v/1000+0.02)+"a0a0",
                 X: x_off + i*10, Y: y_off + j*10 + (_BG_GROUPS.length-1)*300,
             }
@@ -98,7 +98,7 @@ image = (file_name: @string, x_off: @number = 0, y_off: @number = 0) {
             bg_objs_to_cache += @string(temp_obj)
         }
     }
-    cached_bgs[file_name] = bg_objs_to_cache.replace("1,211,24,-42,25,-2,32,0\\.335,41,1,21,4,57,1\\.2\\.1001\\.", "$").replace("(?<=\\.\\d{3})\\d+", "")
+    cached_bgs[file_name] = bg_objs_to_cache.replace("1,211,24,-42,25,-2,32,0\\.335,41,1,21,4,57,1\\.2\\.", "$").replace("(?<=\\.\\d{3})\\d+", "")
     $.print(file_name, " added")
 }
 
@@ -828,6 +828,7 @@ hide_char_funcs = { // this saved 30 whole groups WHAT
 }
 
 
+
 //    x*0.125     y/7.2    // move units
 //    x*0.375     y/2.4    // obj units
 //    x = 18b    y = 10b   // total grid squares (blocks) per each dimension
@@ -1017,6 +1018,11 @@ lhide = (char, x_off: @number = 0, y_off: @number = 0) {
 
     CHARACTERS[char].visible = false
     CHARACTERS[char].pos = {x: -37.5, y: CHARACTERS[char].pos.y}
+}
+
+
+change_sprite = (char, sprite) {
+    
 }
 
 
@@ -1229,7 +1235,8 @@ for i in 0..MAIN_CHARACTERS_KEYS.length {
 // generate and add all bgs
 for bg in 0..BACKGROUNDS.length {
     // jpeg(bg+".png", 42, 0)
-    image(BACKGROUND_FILE_NAMES[bg], 42, 4)
+    _BG_GROUPS.push(@group(998 - _BG_GROUPS.length))
+    image(BACKGROUND_FILE_NAMES[bg], _BG_GROUPS[-1], 42, 4)
 }
 
 // all labels, custom for loop
@@ -1300,5 +1307,5 @@ on(gs.button_b(), change_dialog)
 generate_dialogue_box()
 generate_borders(302, 60)
 
-if CACHE_BACKGROUNDS { $.writefile("./cache_output.txt", "{"+cached_bgs.map((k, v) => '"'+k+"\": \""+v+'"').join(", ")+"}") }
+if CACHE_IMAGES { $.writefile("./cache_output.txt", "{"+cached_bgs.map((k, v) => '"'+k+"\": \""+v+'"').join(", ")+"}") }
 $.print("words: ", words)
