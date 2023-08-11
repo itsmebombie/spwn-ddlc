@@ -337,26 +337,26 @@ sprites = {
             "4z": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: "natsuki/z.png" },
 
             "12": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: "natsuki/2t.png" },
-            "12a": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: head: "natsuki/2bta.png" },
-            "12b": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: head: "natsuki/2btb.png" },
-            "12c": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: head: "natsuki/2btc.png" },
-            "12d": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: head: "natsuki/2btd.png" },
-            "12e": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: head: "natsuki/2bte.png" },
-            "12f": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: head: "natsuki/2btf.png" },
-            "12g": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: head: "natsuki/2btg.png" },
-            "12h": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: head: "natsuki/2bth.png" },
-            "12i": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: head: "natsuki/2bti.png" },
+            "12a": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: "natsuki/2bta.png" },
+            "12b": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: "natsuki/2btb.png" },
+            "12c": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: "natsuki/2btc.png" },
+            "12d": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: "natsuki/2btd.png" },
+            "12e": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: "natsuki/2bte.png" },
+            "12f": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: "natsuki/2btf.png" },
+            "12g": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: "natsuki/2btg.png" },
+            "12h": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: "natsuki/2bth.png" },
+            "12i": { l: "natsuki/1l.png", r: "natsuki/1r.png", head: "natsuki/2bti.png" },
 
             "42": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: "natsuki/2t.png" },
-            "42a": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: head: "natsuki/2bta.png" },
-            "42b": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: head: "natsuki/2btb.png" },
-            "42c": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: head: "natsuki/2btc.png" },
-            "42d": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: head: "natsuki/2btd.png" },
-            "42e": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: head: "natsuki/2bte.png" },
-            "42f": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: head: "natsuki/2btf.png" },
-            "42g": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: head: "natsuki/2btg.png" },
-            "42h": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: head: "natsuki/2bth.png" },
-            "42i": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: head: "natsuki/2bti.png" },
+            "42a": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: "natsuki/2bta.png" },
+            "42b": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: "natsuki/2btb.png" },
+            "42c": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: "natsuki/2btc.png" },
+            "42d": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: "natsuki/2btd.png" },
+            "42e": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: "natsuki/2bte.png" },
+            "42f": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: "natsuki/2btf.png" },
+            "42g": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: "natsuki/2btg.png" },
+            "42h": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: "natsuki/2bth.png" },
+            "42i": { l: "natsuki/2l.png", r: "natsuki/2r.png", head: "natsuki/2bti.png" },
 
             "51": { head: "natsuki/1t.png", body: "natsuki/3.png" },
             "5a": { head: "natsuki/a.png", body: "natsuki/3.png" },
@@ -938,11 +938,11 @@ sprites = {
             "4x": { l_pos: 100, r_pos: 100, head_pos: 2300 },
             "4y": { l_pos: 100, r_pos: 100, head_pos: 2400 },
 
-            "5": { char_pos: 0 },
-            "5a": { char_pos: 0 },
-            "5b": { char_pos: 100 },
-            "5c": { char_pos: 200 },
-            "5d": { char_pos: 300 },
+            "5": { char_pos: 4100 },
+            "5a": { char_pos: 4200 },
+            "5b": { char_pos: 4300 },
+            "5c": { char_pos: 4400 },
+            "5d": { char_pos: 4500 },
 
             "1ba": { l_pos: 200, r_pos: 200, head_pos: 0 },
             "1bb": { l_pos: 200, r_pos: 200, head_pos: 100 },
@@ -1376,7 +1376,7 @@ sprites = {
             "4": { l_pos: 100, r_pos: 100, head_pos: 0 },
             "5": { head_pos: 0, l_pos: 400, r_pos: 400 },
 
-            "vomit": { body_pos: 100 }
+            "vomit": { char_pos: 4100 }
         },
 
         y: {
@@ -1571,7 +1571,7 @@ sprites = {
             "2": { l_pos: 0, r_pos: 100, head_pos: 0 },
             "3": { l_pos: 100, r_pos: 0, head_pos: 0 },
             "4": { l_pos: 100, r_pos: 100, head_pos: 0 },
-            "5": { char: 100 },
+            "5": { char_pos: 4100 },
 
             "1a": { l_pos: 0, r_pos: 0, head_pos: 0 },
             "1b": { l_pos: 0, r_pos: 0, head_pos: 100 },
@@ -1649,8 +1649,8 @@ sprites = {
             "4q": { l_pos: 100, r_pos: 100, head_pos: 1600 },
             "4r": { l_pos: 100, r_pos: 100, head_pos: 1700 },
 
-            "5a": { char: 100 },
-            "5b": { char: 200 },
+            "5a": { char_pos: 4100 },
+            "5b": { char_pos: 4200 },
         }
     }
 }
