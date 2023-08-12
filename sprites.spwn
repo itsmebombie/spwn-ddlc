@@ -4,7 +4,7 @@
 
 ALPHABET = "abcdefghijklmnopqrstuvwxyz" as @array
 NUMBERS = ((0..20) as @array).map(v => v as @string)
-$.print(ALPHABET[0:9])
+// $.print(ALPHABET[0:9])
 
 head_generator = (
     character: @string,
