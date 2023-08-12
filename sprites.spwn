@@ -57,7 +57,7 @@ head_body_generator = (character: @string, prefix: @string, body: @string, lette
     for letter in letters {
         let head_bodies[prefix + letter] = {
             head: "{}/{}.png".fmt([ character, letter ]),
-            body: "natsuki/{}.png".fmt(body),
+            body: "{}/{}.png".fmt([ character, body ]),
         }
     }
     return head_bodies
@@ -128,16 +128,13 @@ sprites = {
         },
 
         y: {
-            "1": { l: "yuri/1l.png", r: "yuri/1r.png", head: "yuri/a.png" },
-            ..head_generator("yuri", "1", "1l", "1r", ALPHABET[0:24]),
+            ..head_generator("yuri", "1", "1l", "1r", ALPHABET[0:24], generate_default = true),
             ..head_generator("yuri", "1y", "1l", "1r", NUMBERS[1:8], file_prefix = "y"),
 
-            "2": { l: "yuri/1l.png", r: "yuri/2r.png", head: "yuri/a.png" },
-            ..head_generator("yuri", "1", "1l", "2r", ALPHABET[0:24]),
+            ..head_generator("yuri", "2", "1l", "2r", ALPHABET[0:24], generate_default = true),
             ..head_generator("yuri", "2y", "1l", "2r", NUMBERS[1:8], file_prefix = "y"),
 
-            "3": { l: "yuri/2l.png", r: "yuri/2r.png", head: "yuri/a.png" },
-            ..head_generator("yuri", "1", "2l", "2r", ALPHABET[0:24]),
+            ..head_generator("yuri", "3", "2l", "2r", ALPHABET[0:24], generate_default = true),
             ..head_generator("yuri", "3y", "2l", "2r", NUMBERS[1:8], file_prefix = "y"),
 
             "4": { body: "yuri/3.png", head: "yuri/a2.png" },
