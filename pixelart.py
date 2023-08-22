@@ -7,40 +7,52 @@ import os
 
 # ACTUAL CODE
 
-HEIGHT = 32
+HEIGHT = 38
 
 # allowed_files = ["class.png", "club.png", "corridor.png", "residential.png"]
 
 # we exclude folders because spwn is slow as fuck with more than hundreds of kb in memory
-excluded_folders = ["cg", "menu", "poem_special", "stab"]
+excluded_folders = ["cg", "menu", "poem_special", "stab", "bar", "button", "mouse", "overlay", "phone", "poemgame", "scrollbar", "slider"]
 
-dir = './ddlc-decompiled/images.rpa/images'
+dir = './ddlc-decompiled/images.rpa'
 outDir = './output.txt'
 
 width, height = 0, 0
 frames = {}
 frs = {}
 
+def read_img(subdir, file):
+    global HEIGHT
+    for i in excluded_folders:
+        if i in subdir.replace(dir+os.sep, "").replace("\\", "/").split("/"): return
+
+    img = cv2.imread(os.path.join(subdir, file), cv2.IMREAD_UNCHANGED)
+    width, height, _ = img.shape
+    ratio = height / width
+    img = cv2.resize(img, (int(HEIGHT * ratio), HEIGHT), interpolation=cv2.INTER_AREA)
+    width, height, _ = img.shape
+
+    if file == "splash.png": # make the splash text go bye-bye so we can replace it later in gd
+        x_start, y_start = 475, 475
+        x_end, y_end = 825, 575
+        mask = img.copy()
+        mask[y_start:y_end, x_start:x_end, 3] = 0
+        img = cv2.copyTo(img, mask)
+
+    frames[subdir.replace(dir+os.sep, "").replace("\\", "/").replace("images/", "")+"/"+file] = img
+
+print("reading images...")
 for subdir, dirs, files in os.walk(dir):
     for file in files:
-        # if file not in allowed_files: continue
+        read_img(subdir, file)
 
-        # rhat the hell, this is supposed to exclude folders
-        continue_loop = False
-        for i in excluded_folders:
-            if i in subdir.replace(dir+os.sep, "").replace("\\", "/").split("/"): continue_loop = True; break 
-        if continue_loop: continue
 
-        img = cv2.imread(os.path.join(subdir, file), cv2.IMREAD_UNCHANGED)
-        width, height, _ = img.shape
-        ratio = height / width
-        img = cv2.resize(img, (int(HEIGHT * ratio), HEIGHT), interpolation=cv2.INTER_AREA)
-        width, height, _ = img.shape
-        frames[subdir.replace(dir+os.sep, "").replace("\\", "/")+"/"+file] = img
 
+print("converting...")
 for f in frames.keys():
     height, width, channels = frames[f].shape
     frs[f] = {"res": [height, width], "image": []}
+    objects = 0
 
     for x in range(height):
         frs[f]["image"].append([])
@@ -55,11 +67,12 @@ for f in frames.keys():
             
             h, s, v = colorsys.rgb_to_hsv(r, g, b)
             if a > 127:
+                objects += 1
                 frs[f]["image"][x].append([int(h*360), int(round(s, 3)*999), int(round(v/255, 3)*999)])
             else:
                 frs[f]["image"][x].append([])
 
-    print(f, " objects:", width*height, " h:", height, " w:", width)
+    print(f, " objects:", objects, " h:", height, " w:", width)
 
 
 with open(outDir, 'w') as f:

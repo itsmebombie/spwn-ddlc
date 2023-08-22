@@ -211,7 +211,7 @@ sprites = {
             ..head_pos_generator("42b", ALPHABET[0:9], l_pos = 300, r_pos = 300, head_pos = 3500),
             ..head_pos_generator("5b", ALPHABET, l_pos = 500, r_pos = 500, generate_default = true),
 
-            "vomit": { body_pos: 100 }
+            "vomit": { char_pos: 4100 }
         },
 
         y: {
@@ -237,9 +237,9 @@ sprites = {
             ..head_pos_generator("2", ALPHABET[0:18], r_pos = 100, generate_default = true),
             ..head_pos_generator("3", ALPHABET[0:18], l_pos = 100, generate_default = true),
             ..head_pos_generator("4", ALPHABET[0:18], l_pos = 100, r_pos = 100, generate_default = true),
-            "5": { char: 100 },
-            "5a": { char: 100 },
-            "5b": { char: 200 },
+            "5": { char_pos: 4100 },
+            "5a": { char_pos: 4100 },
+            "5b": { char_pos: 4200 },
         }
     }
 }

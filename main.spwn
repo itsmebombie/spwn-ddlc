@@ -1,44 +1,80 @@
+// DDLC port to Geometry Dash by bombie
+
+/*
+
+                DISCLAIMER!!!
+
+This is a Doki Doki Literature Club fan game that is
+not affiliated with Team Salvato. It is designed to be played
+only after the official game has been completed.
+You can download Doki Doki Literature Club at: http://ddlc.moe
+
+*/
+
+
 
 // CONFIG
 
-
 lines = $.readfile("./ddlc-decompiled/scripts.rpa/script-ch0.rpy").split("\r\n")
 
-_COLOR = 2c
-_OUTLINE_COLOR = 1c
-_CIRCLE_COLOR = 3c
+_PINK_COLOR = ?c
+_DARK_PINK_COLOR = ?c
 _RED_COLOR = 4c // this needs to be static in order for image cache to work
+// but these need to be static cause i set them in game :rofl:
+_DIALOG_COLOR = 2c
+_OUTLINE_COLOR = 3c
+_CIRCLE_COLOR = 5c
 
 PLAYER_NAME = "bombie"
 LEVEL_DURATION = 10 * 60 // seconds
 
+LABELS_EXCLUSION_LIST = ["ch0_kill"]
+
 GENERATE_IMAGES = true
 // caching may be unstable if you modify the code (it may cause the level to be *literally* unplayable)
+// or hide some objects for some reason i dont really understand :(
 CACHE_IMAGES = true
-READ_CACHED_IMAGES = false // disable this if you dont have a file named "./cached_output.txt" that you didnt make
-
+READ_CACHED_IMAGES = true // disable this if you dont have a file named "./cached_output.txt" that you didnt make
+// which files to exclude from being read from the cache (theyre still gonna be written)
+CACHE_EXCLUDED_IMAGES = []// "gui/menu_art_s.png gui/menu_art_y.png gui/menu_art_n.png gui/menu_art_m.png".split(" ")
 
 // END OF CONFIG
 
 
 
 
+
+
+
+// DO NOT EDIT ANYTHING BELOW UNLESS YOU KNOW WHAT YOU'RE DOING
+
 gs = import gamescene
 sprites = import "sprites.spwn"
 extract obj_props
 
+_PINK_COLOR.set(rgb8(255, 230, 244))
+_DARK_PINK_COLOR.set(rgb8(255, 189, 225))
+_RED_COLOR.set(rgb8(255, 0, 0))
 
 _TEXT_GROUP = ?g
 _WIPE_SCENE_GROUP = ?g
 _NAME_HOLDER_GROUP = ?g
 _INVISIBLE_GROUP = ?g
 let _TEXT_SECTION_GROUPS = [?g]
+let _TEXT_WORD_GROUPS = []
 
 // these are static because of the image caching thing
 _BACKGROUNDS_GROUP = 1g
 _SCENE_GROUP = 2g
 _IMAGE_OUTLINE_GROUP = 3g
+_SPLASH_GROUPS = [4g, ?g]
+_MAIN_MENU_GROUPS = [?g, 5g, 6g, ?g, ?g, ?g]
 let _BG_GROUPS = []
+
+_CREDITS_MENU_GROUP = ?g
+_BLACK_MASK_GROUP = ?g
+_MAIN_MENU_BUTTON_GROUPS = [?g, ?g, ?g]
+_WHITE_BG_GROUPS = [?g, ?g, ?g, ?g]
 
 PLAYER_SPEED = 8.3705 // slow speed
 TAB_SIZE = 4
@@ -48,16 +84,29 @@ sprite_pos_start = {l_pos: 0, r_pos: 0, head_pos: 0, char_pos: 0}
 // using manual groups because of the caching system lmfao
 let CHARACTERS = {
     narrator: { name: "", },
-    s: { name: "???", pos: {x: 80, y: 50}, group: 11g, visible: false, 
+    s: { name: "???", pos: {x: 90, y: 50}, group: 11g, visible: false, 
         head_group: 12g, l_group: 13g, r_group: 14g, char_group: 15g, sprite_pos: sprite_pos_start, added_sprites: [], },
-    m: { name: "Girl 3", pos: {x: 80, y: 50}, group: 21g, visible: false, 
+    m: { name: "Girl 3", pos: {x: 90, y: 50}, group: 21g, visible: false, 
         head_group: 22g, l_group: 23g, r_group: 24g, char_group: 25g, sprite_pos: sprite_pos_start, added_sprites: [], },
-    n: { name: "Girl 2", pos: {x: 80, y: 50}, group: 31g, visible: false, 
+    n: { name: "Girl 2", pos: {x: 90, y: 50}, group: 31g, visible: false, 
         head_group: 32g, l_group: 33g, r_group: 34g, char_group: 35g, sprite_pos: sprite_pos_start, added_sprites: [], },
-    y: { name: "Girl 1", pos: {x: 80, y: 50}, group: 41g, visible: false, 
+    y: { name: "Girl 1", pos: {x: 90, y: 50}, group: 41g, visible: false, 
         head_group: 42g, l_group: 43g, r_group: 44g, char_group: 45g, sprite_pos: sprite_pos_start, added_sprites: [], },
     ny: { name: "Nat & Yuri", },
     mc: { name:  PLAYER_NAME, },
+}
+
+TEXT_CHAR_SIZE_LIST = {
+    '0': 13.5, '1': 13.25, '2': 9.5, '3': 13.5, '4': 13.25, '5': 12.5, '6': 14.25, '7': 13.75, '8': 14.25, '9': 12.75, 
+    'q': 13.5, 'w': 15, 'e': 16.75, 'r': 12.25, 't': 12.5, 'y': 14.5, 'u': 10.75, 'i': 9.5, 'o': 8.75, 'p': 11, 
+    'a': 12.25, 's': 12.5, 'd': 12, 'f': 12.75, 'g': 12, 'h': 11.75, 'j': 11.75, 'k': 8.25, 'l': 8.75, 'z': 12.75, 
+    'x': 17.25, 'c': 14.5, 'v': 13.75, 'b': 14.25, 'n': 12, 'm': 17.5, ',': 13.5, '.': 5, '+': 8.5, '-': 12, 
+    '!': 10.25, '$': 10, '=': 9.25, '[': 14.5, ']': 16.5, '(': 13.5, ')': 10.75, '<': 13.75, '>': 15, '{': 15, 
+    '}': 12.25, "'": 7.75, '"': 6.75, ':': 8.25, ';': 5.5, '?': 8.75, '&': 10.5, '*': 12.25, '^': 12.25, '%': 16.25, 
+    'Q': 11.75, 'W': 18, 'E': 16.75, 'R': 13.5, 'T': 15, 'Y': 13.5, 'U': 14.75, 'I': 11, 'O': 10.5, 'P': 15, 
+    'A': 15, 'S': 15.25, 'D': 14.5, 'F': 12.5, 'G': 13, 'H': 13.25, 'J': 13.5, 'K': 12.75, 'L': 14, 'Z': 17.25, 
+    'X': 17.75, 'C': 16.75, 'V': 15, 'B': 14, 'N': 12.5, 'M': 17.25, '|': 9.5, ' ': 6.5, '\\': 14.75, '~': 9.5, 
+    '/': 18, '`': 9.5, 
 }
 
 MAIN_CHARACTERS_KEYS = ["s", "m", "n", "y"]
@@ -66,7 +115,6 @@ CHARACTERS_NAMES = [" *empty* ", "Sayori", "Yuri", "Monika", "Natsuki", "Nat & Y
 BACKGROUNDS = ["residential_day", "class_day", "club_day", "corridor"]
 BACKGROUND_FILE_NAMES = ["bg/residential.png", "bg/class.png", "bg/club.png", "bg/corridor.png"]
 
-LABELS_EXCLUSION_LIST = ["ch0_kill"]
 WITH_TOKEN_WAIT_TIMES = {"wipeleft_scene": 1, "wipeleft": 0.2}
 
 TOKENS = ["scene", CHARACTERS_TOKENS, "$", "show", "hide", "with"].flatten()
@@ -76,6 +124,10 @@ let current_bg = "residential_day"
 let words = 0
 
 in_scene_transition_counter = counter(false)
+text_typing_animation_active_counter = counter(false)
+in_game_counter = counter(false)
+in_main_menu_counter = counter(false)
+in_credits_menu_counter = counter(false)
 
 // this adds the no fade object and the no bg effect object
 $.add(obj{HVS: ";1,1819,2,-29,3,15,36,1,57,1001;1,22,2,-29,3,45,36,1,57,1001"})
@@ -84,7 +136,7 @@ let cached_images = {}
 readed_cached_images = $.readfile("./cache_output.txt", "json") if READ_CACHED_IMAGES else {} // misspelled ikik but it makes more sense than "read"
 image_output = match GENERATE_IMAGES { ==true: $.readfile("./output.txt", "json") }
 
-image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number = 0, z_order: @number = -5, draw_outline: @bool = true) {
+image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number = 0, z_order: @number = -5, draw_outline: @bool = true, size_multi: @number = 1) {
     if GENERATE_IMAGES == false { return }
 
     if CACHE_IMAGES { let cached_images[file_name] = "" }
@@ -92,11 +144,11 @@ image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number 
     frame_res = frame_data.res
     frame = frame_data.image.reverse() // this is the actual image
 
-    size = 1/(frame_res[0]/10)+0.01
+    size = (1/(frame_res[0]/10)+0.015) * size_multi
 
-    if READ_CACHED_IMAGES && readed_cached_images.get(file_name, default=null) != null {
-        // we use this to compress the cache lmao, it removes like half of the size without that much of a performance hit so im ok with it
-        $.add(obj{HVS: ";"+readed_cached_images[file_name].replace("\\$", "1,211,25,-2,24,{},32,{},41,1,21,4,57,2.1001.".fmt([z_order, @string(size).substr(0, 5)]))+"1,1,2,-999"})
+    if READ_CACHED_IMAGES && (readed_cached_images.get(file_name, default=null) != null && !(file_name in CACHE_EXCLUDED_IMAGES)) {
+        // we use this to compress the cache lmao, it removes like half of the size without that much of a performance hit so im ok with it 
+        $.add(obj{HVS: ";"+readed_cached_images[file_name].replace("\\$", "1,211,24,-3,25,{},32,{},41,1,21,4,57,2.1001.".fmt([z_order, @string(size).substr(0, 5)]))+"1,1,2,-999"})
         cached_images[file_name] += readed_cached_images[file_name]
 
         $.print(file_name, " added from cache")
@@ -104,14 +156,14 @@ image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number 
     }
 
     outline = (x: @number, y: @number) {
-        // just realized i can use min max lmfao, oh well
-        left = x - 1 if x > 0 else 0
-        right = x + 1 if x < frame_res[0] else x
-        up = y - 1 if y > 0 else 0
-        down = y + 1 if y < frame_res[1] else y
+        left = x - 1
+        right = x + 1
+        up = y - 1
+        down = y + 1
         
         // we only need one of them to be true, then we can draw an outline, this way we save a ton of objs
-        return frame[y][left] == [] || frame[y][right] == [] || frame[up][x] == [] || frame[down][x] == []
+        // just added so it also checks if the pixel is on the edge and if it is then also return true since anything on the edge needs an outline
+        return (frame[y][left] == [] || frame[y][right] == [] || frame[up][x] == [] || frame[down][x] == []) || (x == 0 || x == frame_res[0] || y == 0 || y == frame_res[1])
     }
 
     let img_objs_to_cache = ""
@@ -142,7 +194,7 @@ image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number 
                     OBJ_ID: 211,
                     Z_LAYER: -3,
                     Z_ORDER: z_order-1,
-                    SCALING: size*1.2,
+                    SCALING: size*1.25,
                     HVS_ENABLED: true,
                     GROUPS: [_SCENE_GROUP, _IMAGE_OUTLINE_GROUP, groups].flatten(),
                     HVS: "0a0a-100a0a0", // full black
@@ -156,7 +208,7 @@ image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number 
         }
     }
 
-    cached_images[file_name] = img_objs_to_cache.replace("1,211,25,-2,24,"+@string(z_order)+",32,"+@string(size).substr(0, 5)+",41,1,21,4,57,2.", "$")
+    cached_images[file_name] = img_objs_to_cache.replace("1,211,24,-3,25,"+@string(z_order)+",32,"+@string(size).substr(0, 5)+",41,1,21,4,57,2.", "$")
     // 1. trim big floats to 3 decimal places 
     // 2. make sure every object has group 1001 (if for some reason the compression doesnt work, basically a fallback)
     cached_images[file_name] = cached_images[file_name].replace("(?<=\\.\\d{3})\\d+", "").replace(",57,", ",57,1001.")
@@ -229,7 +281,9 @@ add_section = (x_off: @number = 0, y_off: @number = 0) {
 
 
 split_into_lines = (str: @string) {
-    let lines = [""]
+    let lines = [[]]
+    let word_sizes = []
+    let len = 0
 
     for word in str.split(" ") {
         words ++
@@ -238,12 +292,15 @@ split_into_lines = (str: @string) {
         // but 2000 words is good enough
         if words % 2000 == 1999 { add_section(300, 13) }
 
-        word_plus_space = word + " "
-        if lines[-1].length + word_plus_space.length / 2 >= 57 { lines.push("") }
-        lines[-1] += word_plus_space
+        let word_size = 0
+        for char in word { word_size += TEXT_CHAR_SIZE_LIST[char] }
+
+        if len + (word.length+1) / 2 >= 65 { lines.push([]); len = 0 }
+        len += word.length + 1 // +1 because spaces
+        lines[-1].push({word: word, size: word_size})
     }
     
-    return lines.join("\n")
+    return lines
 }
 
 
@@ -286,7 +343,10 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
     last_r_pos = last_sprite_pos.get("r_pos", 0)
 
     let to_move = [0]*4 // head, l, r, char
-    bypass_offset = -MAIN_CHARACTERS_KEYS.index(char) * 3000
+
+    char_index = MAIN_CHARACTERS_KEYS.index(char)
+    bypass_offset = (char_index+2) * 3000
+    char_z_order = -(3 - char_index)*2 - 5 // 3 - char_index so its reversed
 
 
     // text objects are temporary
@@ -306,8 +366,8 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
 
             // special case where natsukis head has a small offset on 3.png and 3b.png
             // without this, natsuki looks "decapitated"
-            natsuki_3_off = [(18*0.375), (22/2.4)] if char == "n" && (body_img == "natsuki/3.png" || body_img == "natsuki/3b.png") else [0, 0]
-            image(head_img, [CHARACTERS[char].group, CHARACTERS[char].head_group], 90 + bypass_offset - natsuki_3_off[0], 4 + head_pos*6 - natsuki_3_off[1])
+            natsuki_3_off = [(18*0.42), (22*0.47)] if char == "n" && (body_img == "natsuki/3.png" || body_img == "natsuki/3b.png") else [0, 0]
+            image(head_img, [CHARACTERS[char].group, CHARACTERS[char].head_group], 150 + bypass_offset - natsuki_3_off[0], head_pos*6 - natsuki_3_off[1] - 5, char_z_order)
             CHARACTERS[char].added_sprites.push(head_img)
         }
     }
@@ -324,7 +384,7 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
             //     DONT_ENTER: true,
             //     TEXT: $.b64encode(body_img.split("/")[1]).replace("/", "_").replace("\\+", "-")
             // })
-            image(body_img, [CHARACTERS[char].group, CHARACTERS[char].l_group], 90 + bypass_offset, 4 + l_pos*6)
+            image(body_img, [CHARACTERS[char].group, CHARACTERS[char].l_group], 150 + bypass_offset, l_pos*6 - 5, char_z_order)
             CHARACTERS[char].added_sprites.push(body_img)
         }
     }
@@ -341,7 +401,7 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
             //     DONT_ENTER: true,
             //     TEXT: $.b64encode(char_img.split("/")[1]).replace("/", "_").replace("\\+", "-")
             // })
-            image(char_img, [CHARACTERS[char].group, CHARACTERS[char].char_group], 90 + bypass_offset, 4 + char_pos*6)
+            image(char_img, [CHARACTERS[char].group, CHARACTERS[char].char_group], 150 + bypass_offset, char_pos*6 - 5, char_z_order)
             CHARACTERS[char].added_sprites.push(char_img)
         }
     }
@@ -358,7 +418,7 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
             //     DONT_ENTER: true,
             //     TEXT: $.b64encode(l_img.split("/")[1]).replace("/", "_").replace("\\+", "-")
             // })
-            image(l_img, [CHARACTERS[char].group, CHARACTERS[char].l_group], 90 + bypass_offset, 4 + l_pos*6)
+            image(l_img, [CHARACTERS[char].group, CHARACTERS[char].l_group], 150 + bypass_offset, l_pos*6 - 5, char_z_order)
             CHARACTERS[char].added_sprites.push(l_img)
         }
     }
@@ -375,7 +435,7 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
             //     DONT_ENTER: true,
             //     TEXT: $.b64encode(r_img.split("/")[1]).replace("/", "_").replace("\\+", "-")
             // })
-            image(r_img, [CHARACTERS[char].group, CHARACTERS[char].r_group], 90 + bypass_offset, 4 + r_pos*6)
+            image(r_img, [CHARACTERS[char].group, CHARACTERS[char].r_group], 150 + bypass_offset, r_pos*6 - 5, char_z_order)
             CHARACTERS[char].added_sprites.push(r_img)
         }
     }
@@ -411,6 +471,28 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
 }
 
 
+crash_group = ?g
+gen_crash_triggers = () {
+    temp_group_for_crash = ?g
+    $.add(obj{
+        OBJ_ID: 1268, // spawn trigger id
+        X: 66, Y: 66,
+        GROUPS: crash_group,
+        SPAWN_TRIGGERED: true,
+        MULTI_TRIGGER: true,
+        SPAWN_DURATION: 0.1,
+        TARGET: temp_group_for_crash,
+    })
+    $.add(obj{
+        OBJ_ID: 1616, // stop trigger
+        X: 88, Y: 88,
+        TARGET: crash_group,
+        GROUPS: temp_group_for_crash,
+        SPAWN_TRIGGERED: true,
+        MULTI_TRIGGER: true,
+    })
+}
+
 
 say_character = (command, tokens, x_off: @number = 0, y_off: @number = 0, speaker_x_off: @number = 0, speaker_y_off: @number = 0) {
     i+=300
@@ -422,21 +504,45 @@ say_character = (command, tokens, x_off: @number = 0, y_off: @number = 0, speake
         collectable(_NAME_HOLDER_GROUP)
     }
 
-    current_character = command
-    $.add(obj{ // text
-        OBJ_ID: 914,
-        X: x_off, Y: y_off + i,
-        SCALING: 0.57,
-        GROUPS: [_TEXT_GROUP, _SCENE_GROUP, _TEXT_SECTION_GROUPS[-1]],
-        DONT_FADE: true,
-        DONT_ENTER: true,
-        TEXT: $.b64encode(split_into_lines(tokens[-1].replace("\\[player\\]", PLAYER_NAME))).replace("/", "_").replace("\\+", "-")
-    })
     
+    // we do this for the typing animation
+    _lines = split_into_lines(tokens[-1].replace("\\[player\\]", PLAYER_NAME))
+    scale = 0.55
+    space_size = TEXT_CHAR_SIZE_LIST[" "]
+
+    let y = 60
+    let iter = 0
+    for line in _lines {
+        let last_size = 0
+        let last_pos = -380
+
+        let word_iter = 0
+        for word in line {
+            word_iter ++
+            iter ++
+            if iter > _TEXT_WORD_GROUPS.length { _TEXT_WORD_GROUPS.push(?g) }
+
+            $.add(obj{ // text
+                OBJ_ID: 914,
+                X: x_off + (last_pos + last_size/2 + space_size + word.size/2)*scale,
+                Y: y_off + i + y/2,
+                SCALING: scale,
+                GROUPS: [_TEXT_GROUP, _SCENE_GROUP, _TEXT_SECTION_GROUPS[-1], _TEXT_WORD_GROUPS[iter-1]],
+                DONT_FADE: true,
+                DONT_ENTER: true,
+                TEXT: $.b64encode(word.word).replace("/", "_").replace("\\+", "-")
+            })
+            last_pos = last_pos + last_size/2 + space_size + word.size/2
+            last_size = word.size
+        }
+        y -= 45
+    }
+    
+    current_character = command
     $.add(obj{ // speaker name
         OBJ_ID: 914,
         X: speaker_x_off, Y: speaker_y_off + i,
-        SCALING: 0.57,
+        SCALING: 0.55,
         GROUPS: [_TEXT_GROUP, _SCENE_GROUP, _TEXT_SECTION_GROUPS[-1]],
         DONT_FADE: true,
         DONT_ENTER: true,
@@ -454,15 +560,48 @@ say_narrator = (command, x_off: @number = 0, y_off: @number = 0) {
     }
 
     current_character = "narrator"
-    $.add(obj{ // text
-        OBJ_ID: 914,
-        X: x_off, Y: y_off + i,
-        SCALING: 0.66,
-        GROUPS: [_TEXT_GROUP, _SCENE_GROUP, _TEXT_SECTION_GROUPS[-1]],
-        DONT_FADE: true,
-        DONT_ENTER: true,
-        TEXT: $.b64encode(split_into_lines(command.replace('"', "").replace("\\[player\\]", PLAYER_NAME))).replace("/", "_").replace("\\+", "-")
-    })
+
+    // we do this for the typing animation
+    _lines = split_into_lines(command.replace('"', "").replace("\\[player\\]", PLAYER_NAME))
+    scale = 0.55
+    space_size = TEXT_CHAR_SIZE_LIST[" "]
+
+    let y = 60
+    let iter = 0
+    for line in _lines {
+        let last_size = 0
+        let last_pos = -375
+
+        let word_iter = 0
+        for word in line {
+            word_iter ++
+            iter ++
+            if iter > _TEXT_WORD_GROUPS.length { _TEXT_WORD_GROUPS.push(?g) }
+
+            $.add(obj{ // text
+                OBJ_ID: 914,
+                X: x_off + (last_pos + last_size/2 + space_size + word.size/2)*scale,
+                Y: y_off + i + y/2,
+                SCALING: scale,
+                GROUPS: [_TEXT_GROUP, _SCENE_GROUP, _TEXT_SECTION_GROUPS[-1], _TEXT_WORD_GROUPS[iter-1]],
+                DONT_FADE: true,
+                DONT_ENTER: true,
+                TEXT: $.b64encode(word.word).replace("/", "_").replace("\\+", "-")
+            })
+            last_pos = last_pos + last_size/2 + space_size + word.size/2
+            last_size = word.size
+        }
+        y -= 45
+    }
+    // $.add(obj{ // text
+    //     OBJ_ID: 914,
+    //     X: x_off, Y: y_off + i,
+    //     SCALING: 0.55,
+    //     GROUPS: [_TEXT_GROUP, _SCENE_GROUP, _TEXT_SECTION_GROUPS[-1]],
+    //     DONT_FADE: true,
+    //     DONT_ENTER: true,
+    //     TEXT: $.b64encode(split_into_lines(command.replace('"', "").replace("\\[player\\]", PLAYER_NAME))).replace("/", "_").replace("\\+", "-")
+    // })
 }
 
 
@@ -475,8 +614,8 @@ set_bg = (bg_name, next_line, x_off: @number = 0, y_off: @number = 0) {
     temp_group = temp_func.start_group
 
     change_bgs = !{
-        -> _BACKGROUNDS_GROUP.move(0, 100 * BACKGROUNDS.index(current_bg), 0) // move to first bg
-        -> _BACKGROUNDS_GROUP.move(0, -100 * BACKGROUNDS.index(bg_name), 0) // move to desired bg
+        -> _BACKGROUNDS_GROUP.move(0, 200 * BACKGROUNDS.index(current_bg), 0) // move to first bg
+        -> _BACKGROUNDS_GROUP.move(0, -200 * BACKGROUNDS.index(bg_name), 0) // move to desired bg
         -> in_scene_transition_counter -- // done transitioning
         -> _TEXT_GROUP.alpha(1, 0)
     }
@@ -636,46 +775,19 @@ with = (tokens, x_off: @number = 0, y_off: @number = 0) {
 
 
 
-circle = (x: @number, y: @number, scale: @number) { // generate circle using quarter circle thingies at x, y and scale
+circle = (x: @number, y: @number, scale: @number, color, groups: @array, z_order: @number) {
+    // screw the quarter circle thingies, ive found a better one
     $.add(obj{
-        OBJ_ID: 1837, // quarter circle thingy
-        X: x - 15 * scale, Y: y + 15 * scale,
-        SCALING: scale,
-        COLOR: _COLOR,
-        GROUPS: _SCENE_GROUP,
-        ROTATION: 0,
+        OBJ_ID: 1841, // animated circle
+        X: x, Y: y,
+        SCALING: scale * 5, // scale 5 is a full editor grid for this object
+        COLOR: color,
+        GROUPS: [_SCENE_GROUP, groups].flatten(),
+        Z_ORDER: z_order,
+        Z_LAYER: -3,
         DONT_FADE: true,
         DONT_ENTER: true,
-    })
-    $.add(obj{
-        OBJ_ID: 1837, // quarter circle thingy
-        X: x + 15 * scale, Y: y + 15 * scale,
-        SCALING: scale,
-        COLOR: _COLOR,
-        GROUPS: _SCENE_GROUP,
-        ROTATION: 90,
-        DONT_FADE: true,
-        DONT_ENTER: true,
-    })
-    $.add(obj{
-        OBJ_ID: 1837, // quarter circle thingy
-        X: x + 15 * scale, Y: y - 15 * scale,
-        SCALING: scale,
-        COLOR: _COLOR,
-        GROUPS: _SCENE_GROUP,
-        ROTATION: 180,
-        DONT_FADE: true,
-        DONT_ENTER: true,
-    })
-    $.add(obj{
-        OBJ_ID: 1837, // quarter circle thingy
-        X: x - 15 * scale, Y: y - 15 * scale,
-        SCALING: scale,
-        COLOR: _COLOR,
-        GROUPS: _SCENE_GROUP,
-        ROTATION: -90,
-        DONT_FADE: true,
-        DONT_ENTER: true,
+        ANIMATION_SPEED: 0.001, // cant have numbers <0.001 in geometry dash (detroit)
     })
 }
 
@@ -718,7 +830,7 @@ vertical_line = (x: @number, y: @number, rotation: @number = 90) {
 }
 
 
-dialogue_box_outline = (x_off: @number = 0, y_off: @number = 0) {
+dialog_box_outline = (x_off: @number = 0, y_off: @number = 0) {
     $.add(obj{
         OBJ_ID: 1835, // quarter circle outline
         X: x_off, Y: y_off,
@@ -780,11 +892,11 @@ dialogue_box_outline = (x_off: @number = 0, y_off: @number = 0) {
 }
 
 
-dialogue_box_interior = (x_off: @number = 0, y_off: @number = 0) {
+dialog_box_interior = (x_off: @number = 0, y_off: @number = 0) {
     $.add(obj{
         OBJ_ID: 1837, // quarter circle thingy
         X: x_off, Y: y_off,
-        COLOR: _COLOR,
+        COLOR: _DIALOG_COLOR,
         GROUPS: _SCENE_GROUP,
         ROTATION: 0,
         Z_LAYER: 1,
@@ -796,7 +908,7 @@ dialogue_box_interior = (x_off: @number = 0, y_off: @number = 0) {
         $.add(obj{
             OBJ_ID: 211, // white block
             X: x_off + i*30, Y: y_off,
-            COLOR: _COLOR,
+            COLOR: _DIALOG_COLOR,
             GROUPS: _SCENE_GROUP,
             Z_LAYER: 1,
             DONT_FADE: true,
@@ -807,7 +919,7 @@ dialogue_box_interior = (x_off: @number = 0, y_off: @number = 0) {
     $.add(obj{
         OBJ_ID: 1837, // quarter circle thingy
         X: x_off + 30*14, Y: y_off,
-        COLOR: _COLOR,
+        COLOR: _DIALOG_COLOR,
         GROUPS: _SCENE_GROUP,
         ROTATION: 90,
         Z_LAYER: 1,
@@ -819,7 +931,7 @@ dialogue_box_interior = (x_off: @number = 0, y_off: @number = 0) {
         $.add(obj{
             OBJ_ID: 211, // white block
             X: x_off + i*30, Y: y_off - 30,
-            COLOR: _COLOR,
+            COLOR: _DIALOG_COLOR,
             GROUPS: _SCENE_GROUP,
             Z_LAYER: 1,
             DONT_FADE: true,
@@ -830,7 +942,7 @@ dialogue_box_interior = (x_off: @number = 0, y_off: @number = 0) {
     $.add(obj{
         OBJ_ID: 1837, // quarter circle thingy
         X: x_off + 30*14, Y: y_off - 60,
-        COLOR: _COLOR,
+        COLOR: _DIALOG_COLOR,
         GROUPS: _SCENE_GROUP,
         ROTATION: 180,
         Z_LAYER: 1,
@@ -842,7 +954,7 @@ dialogue_box_interior = (x_off: @number = 0, y_off: @number = 0) {
         $.add(obj{
             OBJ_ID: 211, // white block
             X: x_off + i*30, Y: y_off - 60,
-            COLOR: _COLOR,
+            COLOR: _DIALOG_COLOR,
             GROUPS: _SCENE_GROUP,
             Z_LAYER: 1,
             DONT_FADE: true,
@@ -853,7 +965,7 @@ dialogue_box_interior = (x_off: @number = 0, y_off: @number = 0) {
     $.add(obj{
         OBJ_ID: 1837, // quarter circle thingy
         X: x_off, Y: y_off - 60,
-        COLOR: _COLOR,
+        COLOR: _DIALOG_COLOR,
         GROUPS: _SCENE_GROUP,
         ROTATION: -90,
         Z_LAYER: 1,
@@ -863,7 +975,7 @@ dialogue_box_interior = (x_off: @number = 0, y_off: @number = 0) {
 }
 
 
-dialogue_box_speaker_thing = (x_off: @number = 0, y_off: @number = 0) {
+dialog_box_speaker_thing = (x_off: @number = 0, y_off: @number = 0) {
     for i in 0..2 {
         $.add(obj{
             OBJ_ID: 1837, // quarter circle thingy
@@ -920,10 +1032,10 @@ dialogue_box_speaker_thing = (x_off: @number = 0, y_off: @number = 0) {
 }
 
 
-generate_dialogue_box = () {
-    dialogue_box_outline(92, 83)
-    dialogue_box_interior(92, 83)
-    dialogue_box_speaker_thing(130, 143)
+generate_dialog_box = () {
+    dialog_box_outline(92, 83)
+    dialog_box_interior(92, 83)
+    dialog_box_speaker_thing(130, 143)
 
     // // add circle thingies
     // for i in -11..11 { // horizontal
@@ -1018,19 +1130,22 @@ hide_char_funcs = { // this saved 30 whole groups WHAT
 let transform_cached_functions = {}
 
 
-//    x*0.125     y/7.2    // move units
-//    x*0.375     y/2.4    // obj units
-//    x = 18b    y = 10b   // total grid squares (blocks) per each dimension
+//    x*0.14    // move units
+//    x*0.42    // obj units
+//    x = 15b   // total grid squares (blocks)
 
 tcommon = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
-    x = x_pix*0.125
+    x = x_pix*0.14
     pos = CHARACTERS[char].pos
 
-    cache_name = char+"_tcommon_"+@string(x_pix)+"_"+@string(CHARACTERS[char].visible)
+    cache_name = char+"_tcommon_"+@string(x_pix)+"_"+@string(CHARACTERS[char].visible)+"_"+@string(pos.y)+@string(pos.x)
     if transform_cached_functions.get(cache_name, null) == null {
+        // basically if theres no changes to be made, just dont make them
+        if CHARACTERS[char].visible && pos.x == x && pos.y == 50 { return }
+
         transform_cached_functions[cache_name] = !{
             -> CHARACTERS[char].group.move(x-pos.x, 50-pos.y, 0.25, EASE_IN)
-        } if CHARACTERS[char].visible else !{ 
+        } if CHARACTERS[char].visible else !{
             // if the character is invisible, move to current position instantly then make it visible
             -> CHARACTERS[char].group.move(x-pos.x, 48-pos.y, 0)
             -> CHARACTERS[char].group.move(0, 2, 0.25, EASE_IN)
@@ -1045,11 +1160,13 @@ tcommon = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
 }
 
 tinstant = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
-    x = x_pix*0.125
+    x = x_pix*0.14
     pos = CHARACTERS[char].pos
 
-    cache_name = char+"_tinstant_"+@string(x_pix)
+    cache_name = char+"_tinstant_"+@string(x_pix)+"_"+@string(pos.y)
     if transform_cached_functions.get(cache_name, null) == null {
+        if CHARACTERS[char].visible && pos.x == x { return }
+
         transform_cached_functions[cache_name] = !{ -> CHARACTERS[char].group.move(x-pos.x, 50-pos.y, 0) }
     }
 
@@ -1060,16 +1177,19 @@ tinstant = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
 }
 
 focus = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
-    x = x_pix*0.125
+    x = x_pix*0.14
     pos = CHARACTERS[char].pos
 
-    cache_name = char+"_focus_"+@string(x_pix)+"_"+@string(CHARACTERS[char].visible)
+    cache_name = char+"_focus_"+@string(x_pix)+"_"+@string(CHARACTERS[char].visible)+"_"+@string(pos.y)+"_"+@string(pos.x)
     if transform_cached_functions.get(cache_name, null) == null {
+        // basically if theres no changes to be made, just dont make them
+        if CHARACTERS[char].visible && pos.x == x && pos.y == 53 { return }
+
         transform_cached_functions[cache_name] = !{
-            -> CHARACTERS[char].group.move(x-pos.x, 55-pos.y, 0.25, EASE_IN)
+            -> CHARACTERS[char].group.move(x-pos.x, 53-pos.y, 0.25, EASE_IN)
         } if CHARACTERS[char].visible else !{
             // if the character is invisible, move to current position instantly then make it visible
-            -> CHARACTERS[char].group.move(x-pos.x, 53-pos.y, 0)
+            -> CHARACTERS[char].group.move(x-pos.x, 51-pos.y, 0)
             -> CHARACTERS[char].group.move(0, 2, 0.25, EASE_IN)
             -> CHARACTERS[char].group.alpha(1, 0.25) // placing it here is VERY benefic for the group and obj count
         }
@@ -1078,30 +1198,30 @@ focus = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
     collectable(transform_cached_functions[cache_name], 300)
     
     CHARACTERS[char].visible = true
-    CHARACTERS[char].pos = {x: x, y: 55}
+    CHARACTERS[char].pos = {x: x, y: 53}
 }
 
 sink = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
-    x = x_pix*0.125
+    x = x_pix*0.14
     pos = CHARACTERS[char].pos
 
-    cache_name = char+"_sink_"+@string(x_pix)
+    cache_name = char+"_sink_"+@string(x_pix)+"_"+@string(pos.y)
     if transform_cached_functions.get(cache_name, null) == null {
         transform_cached_functions[cache_name] = !{
             // removed `x-pos.x` in hopes of reducing group usage when i decide to optimize this
             // after optimizing this, i dont think that impacted anything lmao but im not gonna change it back either way
-            -> CHARACTERS[char].group.move(0, 45-pos.y, 0.5, EASE_IN)
+            -> CHARACTERS[char].group.move(0, 47-pos.y, 0.5, EASE_IN)
         }
     }
 
     collectable(transform_cached_functions[cache_name], 300)
     
     CHARACTERS[char].visible = true
-    CHARACTERS[char].pos = {x: x, y: 45}
+    CHARACTERS[char].pos = {x: x, y: 47}
 } 
 
 hop = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
-    x = x_pix*0.125
+    x = x_pix*0.14
     pos = CHARACTERS[char].pos
 
     // re-optimized this
@@ -1110,8 +1230,8 @@ hop = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
     cache_name = char+"_hop"
     if transform_cached_functions.get(cache_name, null) == null {
         transform_cached_functions[cache_name] = !{
-            -> CHARACTERS[char].group.move(0, 10, 0.1, EASE_OUT)
-            -> CHARACTERS[char].group.move(0, -10, 0.2, EASE_IN)
+            -> CHARACTERS[char].group.move(0, 6, 0.1, EASE_OUT)
+            -> CHARACTERS[char].group.move(0, -6, 0.2, EASE_IN)
         }
     }
 
@@ -1121,21 +1241,24 @@ hop = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
 } 
 
 leftin = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
-    x = x_pix*0.125
+    x = x_pix*0.14
     pos = CHARACTERS[char].pos
 
-    cache_name = char+"_leftin_"+@string(x_pix)
+    cache_name = char+"_leftin_"+@string(x_pix)+"_"+@string(pos.y)
     if transform_cached_functions.get(cache_name, null) == null {
         transform_cached_functions[cache_name] = !{
-            -> CHARACTERS[char].group.move(-37.5-pos.x, 50-pos.y, 0)
-            -> CHARACTERS[char].group.move(x, 0, 0.25, EASE_IN)
+            -> CHARACTERS[char].group.move(-pos.x, 50-pos.y, 0)
+            -> CHARACTERS[char].group.move(x, 0, 0.25, EASE_OUT)
+            // why cant i see her  BECAUSE SHE WAS FUCKING INVISIBLE
+            // but i finally fixed that 😇😇😇
+            -> CHARACTERS[char].group.alpha(1, 0.25)
         }
     }
 
     collectable(transform_cached_functions[cache_name], 300)
 
     CHARACTERS[char].visible = true
-    CHARACTERS[char].pos = {x: -37.5, y: 50}
+    CHARACTERS[char].pos = {x: x, y: 50}
 }
 
 thide = (char, x_off: @number = 0, y_off: @number = 0) {
@@ -1150,24 +1273,27 @@ thide = (char, x_off: @number = 0, y_off: @number = 0) {
 lhide = (char, x_off: @number = 0, y_off: @number = 0) {
     pos = CHARACTERS[char].pos
 
-    cache_name = char+"_lhide"
+    cache_name = char+"_lhide"+"_"+@string(pos.y)
     if transform_cached_functions.get(cache_name, null) == null {
-        transform_cached_functions[cache_name] =!{
-            CHARACTERS[char].group.move(-37.5 - pos.x, 0, 0.25, EASE_OUT)
+        transform_cached_functions[cache_name] = !{
+            // -25 + 90 because 90 is the default pos, thats apparently what i missed (i hope)
+            -> CHARACTERS[char].group.move(-25-pos.x, 0, 0.25, EASE_OUT)
+            -> CHARACTERS[char].group.alpha(0, 0.35)
         }
     }
 
     collectable(transform_cached_functions[cache_name], 300)
 
     CHARACTERS[char].visible = false
-    CHARACTERS[char].pos = {x: -37.5, y: CHARACTERS[char].pos.y}
+    CHARACTERS[char].pos = {x: -25, y: CHARACTERS[char].pos.y}
 }
 
 
 show_character = (tokens, x_off: @number = 0, y_off: @number = 0) {
     // show sayori 4p zorder 2 at t11 (example command thing)
     // not sure if i currently need zorder so im gonna skip that
-    // TODO: wtf apparently `behind` exists as a command token and idk what it does
+    // TODO: wtf apparently `behind` exists as a command token and idk what it does, nvm fuck that
+    // probably sets the zorder but im not fucking with that 🤣
 
     char_name = tokens[0] // current character's name
     char = char_name[0] // get the first letter of the character's name
@@ -1180,7 +1306,9 @@ show_character = (tokens, x_off: @number = 0, y_off: @number = 0) {
 
     if char_index != null && char_index < tokens.length - 1 {
         transform_type = tokens[char_index + 1]
-        
+        // $.print("old ", char, " ", CHARACTERS[char].pos)
+        // $.print(transform_type)
+        // this is not that bad compared to old sprites.spwn
         match transform_type {
             =="t41": tcommon(char, 200, x_off, y_off),
             =="t42": tcommon(char, 493, x_off, y_off),
@@ -1251,6 +1379,7 @@ show_character = (tokens, x_off: @number = 0, y_off: @number = 0) {
             =="thide": thide(char, x_off, y_off),
             =="lhide": lhide(char, x_off, y_off),
         }
+        // $.print("new ", char, " ", CHARACTERS[char].pos)
     }
 }
 
@@ -1336,26 +1465,10 @@ $.add(obj{
     DURATION: 0,
 })
 
-
-// placeholder colors, remove this later
-character_colors = ["195a0.8a0.96a0a0", "125a0.59a0.78a0a0", "304a0.53a0.95a0a0", "281a0.80a0.96a0a0"]
+gen_crash_triggers()
 
 // generate and add characers
 for i in 0..MAIN_CHARACTERS_KEYS.length {
-    // // placeholder
-    // $.add(obj{
-    //     OBJ_ID: 211, // white block
-    //     X: 80*3, Y: 150,
-    //     GROUPS: [CHARACTERS[MAIN_CHARACTERS_KEYS[i]].group, _SCENE_GROUP],
-    //     COLOR: _RED_COLOR,
-    //     HVS: character_colors[i],
-    //     HVS_ENABLED: true,
-    //     SCALING: 4,
-    //     Z_LAYER: -2,
-    //     DONT_FADE: true,
-    //     DONT_ENTER: true,
-    // })
-
     // alpha = 0 at the start to hide the characters
     $.add(obj{
         OBJ_ID: 1007, // alpha trigger
@@ -1366,12 +1479,243 @@ for i in 0..MAIN_CHARACTERS_KEYS.length {
     })
 }
 
+
 // generate and add all bgs
 for bg in 0..BACKGROUNDS.length {
     // jpeg(bg+".png", 42, 0)
     _BG_GROUPS.push(@group(998 - _BG_GROUPS.length))
-    image(BACKGROUND_FILE_NAMES[bg], [_BG_GROUPS[-1], _BACKGROUNDS_GROUP], 42, 4 + (_BG_GROUPS.length-1)*300, -20, false)
+    image(BACKGROUND_FILE_NAMES[bg], [_BG_GROUPS[-1], _BACKGROUNDS_GROUP], 42, (_BG_GROUPS.length-1)*2*300, -20, false)
 }
+
+
+
+// move 200 move units up so we cant see the game on the main menu (lazy and bad fix ik :Rofl;) gonna change later probably
+$.add(obj{
+    OBJ_ID: 901, // move trigger id
+    X: -40, Y: 250,
+    TARGET: _SCENE_GROUP,
+    MOVE_Y: 600,
+    DURATION: 0,
+})
+
+
+// black bars
+for i in 0..2 {
+    for j in 0..5 {
+        $.add(obj{
+            OBJ_ID: 211, // white block
+            X: 0 + i*600, Y: -570 + j*60,
+            GROUPS: _SCENE_GROUP,
+            COLOR: _RED_COLOR,
+            HVS: "0a0a-100a0a0", // full black
+            HVS_ENABLED: true,
+            SCALING: 2.2,
+            Z_ORDER: 69,
+            Z_LAYER: 7,
+            DONT_FADE: true,
+            DONT_ENTER: true,
+        })
+    }
+}
+
+// hide stuff beyond the black bars
+for i in 0..2 {
+    for j in 0..2 {
+        for x in 0..3 {
+            $.add(obj{
+                OBJ_ID: 211, // white block
+                X: -75 + -x*75*(1+i*-2) + i*750, Y: -525 + j*150,
+                GROUPS: _SCENE_GROUP,
+                COLOR: _RED_COLOR,
+                HVS: "0a0a-100a0a0", // full black
+                HVS_ENABLED: true,
+                SCALING: 5,
+                Z_ORDER: 69,
+                Z_LAYER: 7,
+                DONT_FADE: true,
+                DONT_ENTER: true,
+            })
+        }
+    }
+}
+
+
+// create the splash screens
+
+// splash 1
+image("bg/splash.png", [_SPLASH_GROUPS[0]], 35, -590, 2, draw_outline=false)
+"   TEAM\nSALVATO".to_obj().with(GROUPS, [_SPLASH_GROUPS[0], _SCENE_GROUP]).with(X, 300).with(Y, -525).with(SCALING, 0.7).add()
+"ported/recreated by bombie using SPWN (in GD 2.1)".to_obj().with(GROUPS, [_SPLASH_GROUPS[0], _SCENE_GROUP]).with(X, 300).with(Y, -590).with(SCALING, 0.4).add()
+
+// splash 2
+@array("This is a Doki Doki Literature Club fan game that is
+not affiliated with Team Salvato. It is designed to be played
+only after the official game has been completed.
+You can download Doki Doki Literature Club at: http://ddlc.moe
+")[:-1].join("").to_obj().with(GROUPS, [_SPLASH_GROUPS[1], _SCENE_GROUP]).with(X, 300).with(Y, -450).with(SCALING, 0.45).with(DONT_FADE, true).with(DONT_ENTER, true).add()
+
+// add white bg on the main menu and on the normal thingy
+for s in 0..3 {
+    for i in 0..2 {
+        for j in 0..6 {
+            $.add(obj{
+                OBJ_ID: 211, // white block
+                X: -75 + j*150 - (s%2)*45, Y: -525 + i*150 + (s%2)*600,
+                GROUPS: [_SCENE_GROUP, _WHITE_BG_GROUPS[s]],
+                COLOR: _RED_COLOR,
+                HVS: "0a0a100a0a0", // full white
+                HVS_ENABLED: true,
+                SCALING: 5,
+                Z_ORDER: -3 + 10*s,
+                Z_LAYER: -3 + 8*(s%2),
+                DONT_FADE: true,
+                DONT_ENTER: true,
+            })
+        }
+    }
+}
+
+// hide one of the white bgs
+_WHITE_BG_GROUPS[2].alpha(0, 0)
+
+// make splash screens invisible
+for i in _SPLASH_GROUPS {
+    $.add(obj{
+        OBJ_ID: 1007, // alpha trigger
+        X: -40, Y: 275,
+        TARGET: i,
+        OPACITY: 0,
+        DURATION: 0,
+    })
+}
+
+
+// main menu
+
+// side semi-circle
+$.add(obj{
+    OBJ_ID: 1837, // quarter circle thingy
+    X: 60 - 250, Y: -450,
+    COLOR: _PINK_COLOR,
+    GROUPS: [_SCENE_GROUP, _MAIN_MENU_GROUPS[0]],
+    ROTATION: 135,
+    SCALING: 10,
+    Z_ORDER: 1,
+    Z_LAYER: -3,
+    DONT_FADE: true,
+    DONT_ENTER: true,
+})
+$.add(obj{
+    OBJ_ID: 1835, // quarter circle outline
+    X: 80 - 250, Y: -450,
+    COLOR: _DARK_PINK_COLOR,
+    GROUPS: [_SCENE_GROUP, _MAIN_MENU_GROUPS[0]],
+    ROTATION: 135,
+    SCALING: 10,
+    Z_ORDER: 2,
+    Z_LAYER: -3,
+    DONT_FADE: true,
+    DONT_ENTER: true,
+})
+
+// ddlc logo
+image("gui/logo.png", [_MAIN_MENU_GROUPS[1]], 110, -240, 3, draw_outline=false, size_multi=0.375)
+
+// main menu characters
+for i in 0..MAIN_CHARACTERS_KEYS.length {
+    char = "synm".split("")[i]
+    y = [0, 75, 50, -100][i]
+    z = [8, 4, 6, 10][i]
+    size = [0.9, 0.75, 0.8, 1.3][i]
+
+    image("gui/menu_art_{}.png".fmt([char]), [_MAIN_MENU_GROUPS[2]], 200 + i*52, -1000+y, z, draw_outline=true, size_multi=size)
+}
+
+// main menu buttons
+main_menu_buttons = "New game,Credits,Quit".split(",")
+for i in 0..main_menu_buttons.length {
+    main_menu_buttons[i].to_obj().with(GROUPS, [_MAIN_MENU_BUTTON_GROUPS[i], _SCENE_GROUP]).with(X, 100).with(Y, -430 - i*20).with(SCALING, 0.5).with(DONT_FADE, true).with(DONT_ENTER, true).add()
+    -> _MAIN_MENU_BUTTON_GROUPS[i].alpha(0, 0)
+}
+
+// credits menu
+"Credits".to_obj().with(GROUPS, [_CREDITS_MENU_GROUP, _SCENE_GROUP]).with(X, 360).with(Y, -325).with(SCALING, 0.75).with(DONT_FADE, true).with(DONT_ENTER, true).add()
+@array("original DDLC creators:\nTeam Salvato
+")[:-1].join("").to_obj().with(GROUPS, [_CREDITS_MENU_GROUP, _SCENE_GROUP]).with(X, 290).with(Y, -395).with(SCALING, 0.45).with(DONT_FADE, true).with(DONT_ENTER, true).add()
+@array("DDLC port contributors:\nbombie\nSpecky
+")[:-1].join("").to_obj().with(GROUPS, [_CREDITS_MENU_GROUP, _SCENE_GROUP]).with(X, 295).with(Y, -445).with(SCALING, 0.45).with(DONT_FADE, true).with(DONT_ENTER, true).add()
+@array("moral support:\nSpecky\nggod\nDeltara\nbestgamer08\nsertdfyguhi\nkr8gz
+")[:-1].join("").to_obj().with(GROUPS, [_CREDITS_MENU_GROUP, _SCENE_GROUP]).with(X, 450).with(Y, -435).with(SCALING, 0.45).with(DONT_FADE, true).with(DONT_ENTER, true).add()
+@array("special thanks to:\nthe SPWN developers and every other SPWN tester
+")[:-1].join("").to_obj().with(GROUPS, [_CREDITS_MENU_GROUP, _SCENE_GROUP]).with(X, 360).with(Y, -550).with(SCALING, 0.45).with(DONT_FADE, true).with(DONT_ENTER, true).add()
+-> _CREDITS_MENU_GROUP.alpha(0, 0) // hide credits at the beginning
+
+
+// add mask for the transition from the main menu to the game
+for i in 0..2 {
+    for j in 0..6 {
+        $.add(obj{
+            OBJ_ID: 211, // white block
+            X: -75 + j*150, Y: -525 + i*150,
+            GROUPS: [_SCENE_GROUP, _BLACK_MASK_GROUP],
+            COLOR: _RED_COLOR,
+            HVS: "0a0a-100a0a0", // full black
+            HVS_ENABLED: true,
+            SCALING: 5,
+            Z_ORDER: 33,
+            Z_LAYER: 5,
+            DONT_FADE: true,
+            DONT_ENTER: true,
+        })
+    }
+}
+
+// make the mask invisisble at the start
+-> _BLACK_MASK_GROUP.alpha(0, 0)
+
+// add the bg circles
+for k in 0..2 {
+    for i in 0..5 {
+        for j in 0..18 {
+            $.add(obj{
+                OBJ_ID: 1841, // animated circle 
+                X: -125 + j*60 + i*30 + (5*30)*k, Y: -330 - i*60 - (5*60)*k,
+                SCALING: 6, // scale 5 is a full editor grid for this object
+                COLOR: _PINK_COLOR,
+                GROUPS: [_SCENE_GROUP, _MAIN_MENU_GROUPS[3], _MAIN_MENU_GROUPS[4+k]],
+                Z_ORDER: -2,
+                Z_LAYER: -3,
+                DONT_FADE: true,
+                DONT_ENTER: true,
+                ANIMATION_SPEED: 0.001, // cant have numbers <0.001 in geometry dash (detroit)
+            })
+        }
+    }
+}
+
+// circles overlay
+for i in 0..2 {
+    for j in 0..6 {
+        $.add(obj{
+            OBJ_ID: 211, // white block
+            X: -75 + j*150, Y: -525 + i*150,
+            GROUPS: [_SCENE_GROUP, _WHITE_BG_GROUPS[3]],
+            COLOR: _RED_COLOR,
+            HVS: "0a0a100a0a0", // full white
+            HVS_ENABLED: true,
+            SCALING: 5,
+            Z_ORDER: -1,
+            Z_LAYER: -3,
+            DONT_FADE: true,
+            DONT_ENTER: true,
+        })
+    }
+}
+
+// make circles invisibel at the satrt
+// average gd bug, we cant make it invisible so we need to add a white overlay lmfao
+-> _WHITE_BG_GROUPS[3].alpha(1, 0)
+
 
 // all labels, custom for loop
 // let labels = {} // moved to just before call_label()
@@ -1382,7 +1726,7 @@ while line_idx_for_labels < lines.length - 1 {
     // we already know the line starts with "label" so we can just gen the tokens
     [__tokens, label_tabs] = generate_line_tokens(lines[line_idx_for_labels])
 
-    if __tokens[0] != "label" { line_idx_for_labels ++; continue } // if the command isnt "label", aka if we found it in a character dialogue or smth
+    if __tokens[0] != "label" { line_idx_for_labels ++; continue } // if the command isnt "label", aka if we found it in a character dialog or smth
     label_name = __tokens[1].split(":")[0] // to remove the colon that the lexer didnt remove
 
     if label_name in LABELS_EXCLUSION_LIST { line_idx_for_labels ++; continue }
@@ -1428,24 +1772,208 @@ $.add(obj{ // add invisible trigger at the start
 })
 
 
-change_dialog = !{ // change through dialog boxes
-    if in_scene_transition_counter == 0 {
-        _TEXT_GROUP.move(0, -100, 0)
+
+text_anim_start_group = ?g
+text_anim_group = ?g
+
+for i in 0.._TEXT_WORD_GROUPS.length {
+    $.add(obj{ // add invisible trigger at the start
+        OBJ_ID: 1007, // alpha trigger id
+        X: 690, Y: 420,
+        GROUPS: _TEXT_WORD_GROUPS[i],
+        TARGET: _TEXT_WORD_GROUPS[i],
+        SPAWN_TRIGGERED: true,
+        MULTI_TRIGGER: true,
+        OPACITY: 1,
+        DURATION: 0.06,
+    })
+
+    if i == _TEXT_WORD_GROUPS.length - 1 { break }
+
+    if i == 0 {
+        $.add(obj{
+            OBJ_ID: 1268, // spawn trigger id
+            X: 420, Y: 690,
+            GROUPS: text_anim_start_group,
+            TARGET: _TEXT_WORD_GROUPS[i],
+            SPAWN_TRIGGERED: true,
+            MULTI_TRIGGER: true,
+            SPAWN_DURATION: 0.1,
+        })
+    } else {
+        $.add(obj{
+            OBJ_ID: 1268, // spawn trigger id
+            X: 420, Y: 690,
+            GROUPS: _TEXT_WORD_GROUPS[i-1],
+            TARGET: _TEXT_WORD_GROUPS[i],
+            SPAWN_TRIGGERED: true,
+            MULTI_TRIGGER: true,
+            SPAWN_DURATION: 0.1,
+        })
     }
 }
 
-// gonna change soom
-on(gs.button_a(), change_dialog)
-on(gs.button_b(), change_dialog)
 
-generate_dialogue_box()
+stop_text_anim = ?g
+for i in _TEXT_WORD_GROUPS {
+    $.add(obj{
+        OBJ_ID: 1616, // stop trigger
+        X: 420, Y: 420,
+        TARGET: i,
+        GROUPS: stop_text_anim,
+        SPAWN_TRIGGERED: true,
+        MULTI_TRIGGER: true,
+    })
+}
+
+change_dialog = !{ // change through dialog boxes
+    if in_scene_transition_counter == 0 {
+        if text_typing_animation_active_counter == 0 {
+            stop_text_anim!
+            // i tried just setting the alpha of _TEXT_GROUP to 0 but then
+            // it wouldnt want to show in the show_words func
+            -> for i in _TEXT_WORD_GROUPS { -> i.alpha(0, 0) }
+            -> _TEXT_GROUP.move(0, -100, 0)
+
+            text_typing_animation_active_counter += 1
+
+            text_anim_start_group!
+            wait(_TEXT_WORD_GROUPS.length*0.1)
+
+            // sorry specky but i might've had to do this :pensive:
+            text_typing_animation_active_counter = false
+        } else {
+            stop_text_anim!
+            -> for i in _TEXT_WORD_GROUPS { -> i.alpha(1, 0) }
+            text_typing_animation_active_counter = false
+        }
+    }
+}
+
+
+
+generate_dialog_box()
 generate_borders(302, 60)
 
- // anti-porn bypass or whatever lmao
+
+selector_iter_counter = counter(0, bits=3)
+// lmao
+-> _MAIN_MENU_BUTTON_GROUPS[0].pulse(rgb8(255, 220, 234), hold=999)
+-> _MAIN_MENU_BUTTON_GROUPS[1].pulse(rgb(1, 1, 1), hold=999)
+-> _MAIN_MENU_BUTTON_GROUPS[2].pulse(rgb(1, 1, 1), hold=999)
+
+click_left = !{
+    if in_game_counter == 1 { change_dialog! } // cant return from function early 😡😡
+    else if in_main_menu_counter == 1 {
+        // white
+        -> _MAIN_MENU_BUTTON_GROUPS[selector_iter_counter.to_const(0..3)].pulse(rgb(1, 1, 1), fade_in=0.1, hold=999)
+
+        selector_iter_counter ++
+        if selector_iter_counter == 3 { selector_iter_counter -= 3 }
+
+        // pink
+        -> _MAIN_MENU_BUTTON_GROUPS[selector_iter_counter.to_const(0..3)].pulse(rgb8(255, 220, 234), fade_in=0.1, hold=999)
+    }
+}
+
+click_right = !{
+    if in_game_counter == 1 { change_dialog! } 
+    else if in_main_menu_counter == 1 {
+        if selector_iter_counter == 0 { // play
+            in_main_menu_counter -- // false
+            
+            // darken the color of the button
+            -> _MAIN_MENU_BUTTON_GROUPS[0].pulse(rgb8(255, 189, 225), fade_in=0.1, hold=0.1, fade_out=0.1)
+
+            _BLACK_MASK_GROUP.alpha(1, 0.6)
+            -> _SCENE_GROUP.move(0, -200, 0)
+            -> _BLACK_MASK_GROUP.move(0, 200, 0)
+            wait(1)
+            -> _BLACK_MASK_GROUP.alpha(0, 0.6)
+
+            wait(1)
+            in_game_counter ++ // true
+        } else if selector_iter_counter == 1 { // credits
+            if in_credits_menu_counter == 1 {
+                -> _MAIN_MENU_GROUPS[1].alpha(1, 0) // logo
+                -> _MAIN_MENU_GROUPS[2].alpha(1, 0) // girls
+                -> _CREDITS_MENU_GROUP.alpha(0, 0) // credits
+                
+                -> _MAIN_MENU_BUTTON_GROUPS[1].pulse(rgb8(255, 220, 234), fade_in=0.1, hold=999)
+                in_credits_menu_counter --
+            } else if in_credits_menu_counter == 0 {
+                -> _MAIN_MENU_GROUPS[1].alpha(0, 0) // logo
+                -> _MAIN_MENU_GROUPS[2].alpha(0, 0) // girls
+                -> _CREDITS_MENU_GROUP.alpha(1, 0) // credits
+
+                // darken the color of the button
+                -> _MAIN_MENU_BUTTON_GROUPS[1].pulse(rgb8(255, 189, 225), fade_in=0.1, hold=999)
+
+                in_credits_menu_counter ++
+            }
+        } else if selector_iter_counter == 2 { // quit game        
+            // darken the color of the button
+            -> _MAIN_MENU_BUTTON_GROUPS[2].pulse(rgb8(255, 189, 225), fade_in=0.1)
+
+            wait(0.06)
+
+            crash_group!
+        }
+    }
+}
+
+
+on(gs.button_a(), click_left)
+on(gs.button_b(), click_right)
+
+
+// anti-porn bypass or whatever lmao
 _IMAGE_OUTLINE_GROUP.move(-1000, 0, 0)
 for i in 0..MAIN_CHARACTERS_KEYS.length {
-    CHARACTERS[MAIN_CHARACTERS_KEYS[i]].group.move(1000*i, 0, 0)
+    CHARACTERS[MAIN_CHARACTERS_KEYS[i]].group.move(-1000*(i+2), 0, 0)
 }
 
 if CACHE_IMAGES { $.writefile("./cache_output.txt", "{"+cached_images.map((k, v) => '"'+k+"\": \""+v+'"').join(", ")+"}") }
 $.print("words: ", words)
+
+
+
+// runtime from now on i guess
+
+// splash screen
+wait(0.5)
+@log::runtime::flash()
+-> _WHITE_BG_GROUPS[1].alpha(0, 0) // hide the white bg used to hide the game at the start
+-> _SPLASH_GROUPS[0].alpha(1, 0.25)
+wait(1.25)
+-> _SPLASH_GROUPS[0].alpha(0, 0.25)
+wait(0.75)
+-> _SPLASH_GROUPS[1].alpha(1, 0.25)
+wait(3.25)
+-> _SPLASH_GROUPS[1].alpha(0, 0.25)
+
+
+// main menu
+
+wait(0.5)
+-> for i in 0..main_menu_buttons.length { -> _MAIN_MENU_BUTTON_GROUPS[i].alpha(1, 0.25) }
+-> _WHITE_BG_GROUPS[3].alpha(0, 0.25)
+-> _MAIN_MENU_GROUPS[3].move(-5*LEVEL_DURATION, 5*LEVEL_DURATION, LEVEL_DURATION)
+// could be better but it fucking works :shrug::shrug::shrug:
+-> while_loop(() => true, () { _MAIN_MENU_GROUPS[4].move(200, -200, 0); wait(20); _MAIN_MENU_GROUPS[5].move(200, -200, 0) }, 20)
+wait(0.5)   
+-> _SCENE_GROUP.alpha(0, 0)
+-> _SCENE_GROUP.alpha(1, 0.3)
+-> _MAIN_MENU_GROUPS[0].move(250/3, 0, 1.5, EXPONENTIAL_OUT)
+-> _MAIN_MENU_GROUPS[1].move(0, -45, 2, BOUNCE_OUT)
+wait(0.2)
+-> _MAIN_MENU_GROUPS[2].move(0, 120, 2.5, EXPONENTIAL_OUT)
+-> _MAIN_MENU_GROUPS[3].move(0, 75, 3, EXPONENTIAL_OUT)
+
+in_main_menu_counter += 1 // true
+
+// the part where it flashes white synced to the song, hopefully
+wait(0.93)
+-> _WHITE_BG_GROUPS[2].alpha(0.5, 0)
+-> _WHITE_BG_GROUPS[2].alpha(0, 0.5)
+-> _MAIN_MENU_GROUPS[3].move(0, -80, 0) // move the circles where they should be
