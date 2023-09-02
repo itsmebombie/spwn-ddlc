@@ -19,6 +19,7 @@ lines = $.readfile("./ddlc-decompiled/scripts.rpa/script-ch0.rpy").split("\r\n")
 
 _PINK_COLOR = ?c
 _DARK_PINK_COLOR = ?c
+_HALF_OPACITY_WHITE_COLOR = ?c
 _RED_COLOR = 4c // this needs to be static in order for image cache to work
 // but these need to be static cause i set them in game :rofl:
 _DIALOG_COLOR = 2c
@@ -36,7 +37,7 @@ GENERATE_IMAGES = true
 CACHE_IMAGES = true
 READ_CACHED_IMAGES = true // disable this if you dont have a file named "./cached_output.txt" that you didnt make
 // which files to exclude from being read from the cache (theyre still gonna be written)
-CACHE_EXCLUDED_IMAGES = []// "gui/menu_art_s.png gui/menu_art_y.png gui/menu_art_n.png gui/menu_art_m.png".split(" ")
+CACHE_EXCLUDED_IMAGES = []
 
 // END OF CONFIG
 
@@ -55,6 +56,7 @@ extract obj_props
 _PINK_COLOR.set(rgb8(255, 230, 244))
 _DARK_PINK_COLOR.set(rgb8(255, 189, 225))
 _RED_COLOR.set(rgb8(255, 0, 0))
+_HALF_OPACITY_WHITE_COLOR.set(rgb(1, 1, 1, 0.5))
 
 _TEXT_GROUP = ?g
 _WIPE_SCENE_GROUP = ?g
@@ -69,12 +71,19 @@ _SCENE_GROUP = 2g
 _IMAGE_OUTLINE_GROUP = 3g
 _SPLASH_GROUPS = [4g, ?g]
 _MAIN_MENU_GROUPS = [?g, 5g, 6g, ?g, ?g, ?g]
+_MAIN_MENU_GIRLS_GROUPS = [7g, 8g, 9g, 10g]
 let _BG_GROUPS = []
 
 _CREDITS_MENU_GROUP = ?g
 _BLACK_MASK_GROUP = ?g
 _MAIN_MENU_BUTTON_GROUPS = [?g, ?g, ?g]
+_MAIN_MENU_BUTTON_GROUPS_SHIFTED = [_MAIN_MENU_BUTTON_GROUPS[1], _MAIN_MENU_BUTTON_GROUPS[2], _MAIN_MENU_BUTTON_GROUPS[0]]
 _WHITE_BG_GROUPS = [?g, ?g, ?g, ?g]
+_CLICK_OVERLAY_FEEDBACK_GROUP = [?g, ?g]
+_ANTI_PORN_BYPASS_GROUPS = [99g, 98g, 97g, 96g]
+
+_FOCUS_OVERLAY_GROUP = ?g
+_MAIN_MENU_TUTORIAL_GROUP = ?g
 
 PLAYER_SPEED = 8.3705 // slow speed
 TAB_SIZE = 4
@@ -120,23 +129,27 @@ WITH_TOKEN_WAIT_TIMES = {"wipeleft_scene": 1, "wipeleft": 0.2}
 TOKENS = ["scene", CHARACTERS_TOKENS, "$", "show", "hide", "with"].flatten()
 
 let current_character = "your mother"
-let current_bg = "residential_day"
+let current_bg = ""
 let words = 0
 
 in_scene_transition_counter = counter(false)
 text_typing_animation_active_counter = counter(false)
 in_game_counter = counter(false)
+in_tutorial_counter = counter(false)
 in_main_menu_counter = counter(false)
 in_credits_menu_counter = counter(false)
+
+tutorial_closing_counter = counter(false)
 
 // this adds the no fade object and the no bg effect object
 $.add(obj{HVS: ";1,1819,2,-29,3,15,36,1,57,1001;1,22,2,-29,3,45,36,1,57,1001"})
 
 let cached_images = {}
+let added_images = []
 readed_cached_images = $.readfile("./cache_output.txt", "json") if READ_CACHED_IMAGES else {} // misspelled ikik but it makes more sense than "read"
 image_output = match GENERATE_IMAGES { ==true: $.readfile("./output.txt", "json") }
 
-image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number = 0, z_order: @number = -5, draw_outline: @bool = true, size_multi: @number = 1) {
+image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number = 0, z_order: @number = -5, z_layer: @number = -3, draw_outline: @bool = true, size_multi: @number = 1) {
     if GENERATE_IMAGES == false { return }
 
     if CACHE_IMAGES { let cached_images[file_name] = "" }
@@ -146,6 +159,7 @@ image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number 
 
     size = (1/(frame_res[0]/10)+0.015) * size_multi
 
+    added_images.push(file_name)
     if READ_CACHED_IMAGES && (readed_cached_images.get(file_name, default=null) != null && !(file_name in CACHE_EXCLUDED_IMAGES)) {
         // we use this to compress the cache lmao, it removes like half of the size without that much of a performance hit so im ok with it 
         $.add(obj{HVS: ";"+readed_cached_images[file_name].replace("\\$", "1,211,24,-3,25,{},32,{},41,1,21,4,57,2.1001.".fmt([z_order, @string(size).substr(0, 5)]))+"1,1,2,-999"})
@@ -163,7 +177,9 @@ image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number 
         
         // we only need one of them to be true, then we can draw an outline, this way we save a ton of objs
         // just added so it also checks if the pixel is on the edge and if it is then also return true since anything on the edge needs an outline
-        return (frame[y][left] == [] || frame[y][right] == [] || frame[up][x] == [] || frame[down][x] == []) || (x == 0 || x == frame_res[0] || y == 0 || y == frame_res[1])
+        return (x <= 0 || x >= frame_res[0] || y <= 0 || y >= frame_res[1])
+            || (left <= 0 || right >= frame_res[0] || up <= 0 || down >= frame_res[1])
+            || (frame[y][left] == [] || frame[y][right] == [] || frame[up][x] == [] || frame[down][x] == []) 
     }
 
     let img_objs_to_cache = ""
@@ -172,18 +188,21 @@ image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number 
             if frame[j][i] == [] { continue }
             [h, s, v] = frame[j][i]
 
+            anti_porn_bypass = i%2 + (j%2)*2
+            anti_porn_bypass_x = (5000 + anti_porn_bypass * 1000)*3
+
             can_draw_outline = outline(i, j) if draw_outline else false
 
             temp_obj = obj{
                 OBJ_ID: 211,
-                Z_LAYER: -3,
+                Z_LAYER: z_layer,
                 Z_ORDER: z_order,
                 SCALING: size,
                 HVS_ENABLED: true,
                 COLOR: _RED_COLOR,
-                GROUPS: [_SCENE_GROUP, groups].flatten(),
+                GROUPS: [_SCENE_GROUP, _ANTI_PORN_BYPASS_GROUPS[anti_porn_bypass], groups].flatten(),
                 HVS: @string(h)+"a"+@string(s/1000)+"a"+@string(v/1000+0.02)+"a0a0",
-                X: x_off + i*(30 * (size-0.01)), Y: y_off + j*(30 * (size-0.01)),
+                X: x_off + i*(30 * (size-0.01)) + anti_porn_bypass_x, Y: y_off + j*(30 * (size-0.01)),
             }
 
             temp_obj.add()
@@ -192,13 +211,14 @@ image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number 
             if can_draw_outline {
                 outline_obj = obj{
                     OBJ_ID: 211,
-                    Z_LAYER: -3,
+                    Z_LAYER: z_layer,
                     Z_ORDER: z_order-1,
-                    SCALING: size*1.25,
+                    SCALING: size+0.075,
                     HVS_ENABLED: true,
-                    GROUPS: [_SCENE_GROUP, _IMAGE_OUTLINE_GROUP, groups].flatten(),
+                    GROUPS: [_SCENE_GROUP, _IMAGE_OUTLINE_GROUP, _ANTI_PORN_BYPASS_GROUPS[anti_porn_bypass], groups].flatten(),
                     HVS: "0a0a-100a0a0", // full black
-                    X: 3000 + x_off + i*(30 * (size-0.01)), // +3000 for the anti-porn bypass lmao
+                    HIGH_DETAIL: true,
+                    X: 3000 + x_off + i*(30 * (size-0.01)) + anti_porn_bypass_x, // +3000 for the anti-porn bypass lmao
                     Y: y_off + j*(30 * (size-0.01)),
                 }
                 outline_obj.add()
@@ -367,7 +387,7 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
             // special case where natsukis head has a small offset on 3.png and 3b.png
             // without this, natsuki looks "decapitated"
             natsuki_3_off = [(18*0.42), (22*0.47)] if char == "n" && (body_img == "natsuki/3.png" || body_img == "natsuki/3b.png") else [0, 0]
-            image(head_img, [CHARACTERS[char].group, CHARACTERS[char].head_group], 150 + bypass_offset - natsuki_3_off[0], head_pos*6 - natsuki_3_off[1] - 5, char_z_order)
+            image(head_img, [CHARACTERS[char].group, CHARACTERS[char].head_group], 150 + bypass_offset - natsuki_3_off[0], head_pos*6 - natsuki_3_off[1] - 5, char_z_order, -1)
             CHARACTERS[char].added_sprites.push(head_img)
         }
     }
@@ -384,7 +404,7 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
             //     DONT_ENTER: true,
             //     TEXT: $.b64encode(body_img.split("/")[1]).replace("/", "_").replace("\\+", "-")
             // })
-            image(body_img, [CHARACTERS[char].group, CHARACTERS[char].l_group], 150 + bypass_offset, l_pos*6 - 5, char_z_order)
+            image(body_img, [CHARACTERS[char].group, CHARACTERS[char].l_group], 150 + bypass_offset, l_pos*6 - 5, char_z_order, -1)
             CHARACTERS[char].added_sprites.push(body_img)
         }
     }
@@ -401,7 +421,7 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
             //     DONT_ENTER: true,
             //     TEXT: $.b64encode(char_img.split("/")[1]).replace("/", "_").replace("\\+", "-")
             // })
-            image(char_img, [CHARACTERS[char].group, CHARACTERS[char].char_group], 150 + bypass_offset, char_pos*6 - 5, char_z_order)
+            image(char_img, [CHARACTERS[char].group, CHARACTERS[char].char_group], 150 + bypass_offset, char_pos*6 - 5, char_z_order, -1)
             CHARACTERS[char].added_sprites.push(char_img)
         }
     }
@@ -418,7 +438,7 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
             //     DONT_ENTER: true,
             //     TEXT: $.b64encode(l_img.split("/")[1]).replace("/", "_").replace("\\+", "-")
             // })
-            image(l_img, [CHARACTERS[char].group, CHARACTERS[char].l_group], 150 + bypass_offset, l_pos*6 - 5, char_z_order)
+            image(l_img, [CHARACTERS[char].group, CHARACTERS[char].l_group], 150 + bypass_offset, l_pos*6 - 5, char_z_order, -1)
             CHARACTERS[char].added_sprites.push(l_img)
         }
     }
@@ -435,7 +455,7 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
             //     DONT_ENTER: true,
             //     TEXT: $.b64encode(r_img.split("/")[1]).replace("/", "_").replace("\\+", "-")
             // })
-            image(r_img, [CHARACTERS[char].group, CHARACTERS[char].r_group], 150 + bypass_offset, r_pos*6 - 5, char_z_order)
+            image(r_img, [CHARACTERS[char].group, CHARACTERS[char].r_group], 150 + bypass_offset, r_pos*6 - 5, char_z_order, -1)
             CHARACTERS[char].added_sprites.push(r_img)
         }
     }
@@ -471,13 +491,13 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
 }
 
 
-crash_group = ?g
+crash_func = !{}
 gen_crash_triggers = () {
     temp_group_for_crash = ?g
     $.add(obj{
         OBJ_ID: 1268, // spawn trigger id
         X: 66, Y: 66,
-        GROUPS: crash_group,
+        GROUPS: crash_func.start_group,
         SPAWN_TRIGGERED: true,
         MULTI_TRIGGER: true,
         SPAWN_DURATION: 0.1,
@@ -486,7 +506,7 @@ gen_crash_triggers = () {
     $.add(obj{
         OBJ_ID: 1616, // stop trigger
         X: 88, Y: 88,
-        TARGET: crash_group,
+        TARGET: crash_func.start_group,
         GROUPS: temp_group_for_crash,
         SPAWN_TRIGGERED: true,
         MULTI_TRIGGER: true,
@@ -506,7 +526,7 @@ say_character = (command, tokens, x_off: @number = 0, y_off: @number = 0, speake
 
     
     // we do this for the typing animation
-    _lines = split_into_lines(tokens[-1].replace("\\[player\\]", PLAYER_NAME))
+    _lines = split_into_lines(tokens[-1].replace("\\[player\\]", PLAYER_NAME).replace("\\{([^}]+)\\}", "").replace("%%", "%"))
     scale = 0.55
     space_size = TEXT_CHAR_SIZE_LIST[" "]
 
@@ -530,7 +550,7 @@ say_character = (command, tokens, x_off: @number = 0, y_off: @number = 0, speake
                 GROUPS: [_TEXT_GROUP, _SCENE_GROUP, _TEXT_SECTION_GROUPS[-1], _TEXT_WORD_GROUPS[iter-1]],
                 DONT_FADE: true,
                 DONT_ENTER: true,
-                TEXT: $.b64encode(word.word).replace("/", "_").replace("\\+", "-")
+                TEXT: $.b64encode(word.word.replace("\\{([^}]+)\\}", "").replace("%%", "%")).replace("/", "_").replace("\\+", "-")
             })
             last_pos = last_pos + last_size/2 + space_size + word.size/2
             last_size = word.size
@@ -562,7 +582,7 @@ say_narrator = (command, x_off: @number = 0, y_off: @number = 0) {
     current_character = "narrator"
 
     // we do this for the typing animation
-    _lines = split_into_lines(command.replace('"', "").replace("\\[player\\]", PLAYER_NAME))
+    _lines = split_into_lines(command.replace('"', "").replace("\\[player\\]", PLAYER_NAME).replace("\\{([^}]+)\\}", "").replace("%%", "%"))
     scale = 0.55
     space_size = TEXT_CHAR_SIZE_LIST[" "]
 
@@ -577,7 +597,7 @@ say_narrator = (command, x_off: @number = 0, y_off: @number = 0) {
             word_iter ++
             iter ++
             if iter > _TEXT_WORD_GROUPS.length { _TEXT_WORD_GROUPS.push(?g) }
-
+            
             $.add(obj{ // text
                 OBJ_ID: 914,
                 X: x_off + (last_pos + last_size/2 + space_size + word.size/2)*scale,
@@ -600,10 +620,9 @@ say_narrator = (command, x_off: @number = 0, y_off: @number = 0) {
     //     GROUPS: [_TEXT_GROUP, _SCENE_GROUP, _TEXT_SECTION_GROUPS[-1]],
     //     DONT_FADE: true,
     //     DONT_ENTER: true,
-    //     TEXT: $.b64encode(split_into_lines(command.replace('"', "").replace("\\[player\\]", PLAYER_NAME))).replace("/", "_").replace("\\+", "-")
+    //     TEXT: $.b64encode(split_into_lines(command.replace('"', "").replace("\\[player\\]", PLAYER_NAME).replace("\\{([^}]+)\\}", "").replace("%%", "%"))).replace("/", "_").replace("\\+", "-")
     // })
 }
-
 
 set_bg = (bg_name, next_line, x_off: @number = 0, y_off: @number = 0) {
     if current_bg == bg_name { return } // checks if the last bg is the current bg
@@ -613,9 +632,21 @@ set_bg = (bg_name, next_line, x_off: @number = 0, y_off: @number = 0) {
     temp_func = !{ -> in_scene_transition_counter ++; -> _TEXT_GROUP.alpha(0, 0.25) } // started transition
     temp_group = temp_func.start_group
 
+    current_bg_idx = BACKGROUNDS.index(current_bg)
+    next_bg_idx = BACKGROUNDS.index(bg_name)
+
     change_bgs = !{
-        -> _BACKGROUNDS_GROUP.move(0, 200 * BACKGROUNDS.index(current_bg), 0) // move to first bg
-        -> _BACKGROUNDS_GROUP.move(0, -200 * BACKGROUNDS.index(bg_name), 0) // move to desired bg
+        -> _BG_GROUPS[current_bg_idx].toggle_off()
+        -> _BG_GROUPS[next_bg_idx].toggle_on()
+
+        -> _BACKGROUNDS_GROUP.move(0, 200 * current_bg_idx, 0) // move to first bg
+        -> _BACKGROUNDS_GROUP.move(0, -200 * next_bg_idx, 0) // move to desired bg
+        -> in_scene_transition_counter -- // done transitioning
+        -> _TEXT_GROUP.alpha(1, 0)
+    } if current_bg_idx != null else !{
+        -> _BG_GROUPS[next_bg_idx].toggle_on()
+
+        -> _BACKGROUNDS_GROUP.move(0, -200 * next_bg_idx, 0) // move to desired bg
         -> in_scene_transition_counter -- // done transitioning
         -> _TEXT_GROUP.alpha(1, 0)
     }
@@ -1244,7 +1275,7 @@ leftin = (char, x_pix = 640, x_off: @number = 0, y_off: @number = 0) {
     x = x_pix*0.14
     pos = CHARACTERS[char].pos
 
-    cache_name = char+"_leftin_"+@string(x_pix)+"_"+@string(pos.y)
+    cache_name = char+"_leftin_"+@string(x_pix)+"_"+@string(pos.y)+"_"+@string(pos.x)
     if transform_cached_functions.get(cache_name, null) == null {
         transform_cached_functions[cache_name] = !{
             -> CHARACTERS[char].group.move(-pos.x, 50-pos.y, 0)
@@ -1484,7 +1515,8 @@ for i in 0..MAIN_CHARACTERS_KEYS.length {
 for bg in 0..BACKGROUNDS.length {
     // jpeg(bg+".png", 42, 0)
     _BG_GROUPS.push(@group(998 - _BG_GROUPS.length))
-    image(BACKGROUND_FILE_NAMES[bg], [_BG_GROUPS[-1], _BACKGROUNDS_GROUP], 42, (_BG_GROUPS.length-1)*2*300, -20, false)
+    image(BACKGROUND_FILE_NAMES[bg], [_BG_GROUPS[-1], _BACKGROUNDS_GROUP], 42, (_BG_GROUPS.length-1)*600, -40, -3, false)
+    -> _BG_GROUPS[-1].toggle_off()
 }
 
 
@@ -1607,7 +1639,7 @@ $.add(obj{
 })
 $.add(obj{
     OBJ_ID: 1835, // quarter circle outline
-    X: 80 - 250, Y: -450,
+    X: 90 - 250, Y: -450,
     COLOR: _DARK_PINK_COLOR,
     GROUPS: [_SCENE_GROUP, _MAIN_MENU_GROUPS[0]],
     ROTATION: 135,
@@ -1619,16 +1651,18 @@ $.add(obj{
 })
 
 // ddlc logo
-image("gui/logo.png", [_MAIN_MENU_GROUPS[1]], 110, -240, 3, draw_outline=false, size_multi=0.375)
+image("gui/logo.png", [_MAIN_MENU_GROUPS[1]], 80, -270, 3, draw_outline=false, size_multi=0.4)
 
 // main menu characters
 for i in 0..MAIN_CHARACTERS_KEYS.length {
     char = "synm".split("")[i]
-    y = [0, 75, 50, -100][i]
+    y = [0, 90, 50, -125][i]
     z = [8, 4, 6, 10][i]
-    size = [0.9, 0.75, 0.8, 1.3][i]
+    size = [0.9, 0.8, 0.8, 1.35][i]
+    offset = [35, 15, -16, -45][i]
 
-    image("gui/menu_art_{}.png".fmt([char]), [_MAIN_MENU_GROUPS[2]], 200 + i*52, -1000+y, z, draw_outline=true, size_multi=size)
+    image("gui/menu_art_{}.png".fmt([char]), [_MAIN_MENU_GROUPS[2], _MAIN_MENU_GIRLS_GROUPS[i]], 200 + i*52 + offset, -1000+y, z, draw_outline=true, size_multi=size)
+    
 }
 
 // main menu buttons
@@ -1646,7 +1680,7 @@ for i in 0..main_menu_buttons.length {
 ")[:-1].join("").to_obj().with(GROUPS, [_CREDITS_MENU_GROUP, _SCENE_GROUP]).with(X, 295).with(Y, -445).with(SCALING, 0.45).with(DONT_FADE, true).with(DONT_ENTER, true).add()
 @array("moral support:\nSpecky\nggod\nDeltara\nbestgamer08\nsertdfyguhi\nkr8gz
 ")[:-1].join("").to_obj().with(GROUPS, [_CREDITS_MENU_GROUP, _SCENE_GROUP]).with(X, 450).with(Y, -435).with(SCALING, 0.45).with(DONT_FADE, true).with(DONT_ENTER, true).add()
-@array("special thanks to:\nthe SPWN developers and every other SPWN tester
+@array("and last but not least, thanks to:\nthe SPWN developers and every other SPWN tester
 ")[:-1].join("").to_obj().with(GROUPS, [_CREDITS_MENU_GROUP, _SCENE_GROUP]).with(X, 360).with(Y, -550).with(SCALING, 0.45).with(DONT_FADE, true).with(DONT_ENTER, true).add()
 -> _CREDITS_MENU_GROUP.alpha(0, 0) // hide credits at the beginning
 
@@ -1680,7 +1714,7 @@ for k in 0..2 {
             $.add(obj{
                 OBJ_ID: 1841, // animated circle 
                 X: -125 + j*60 + i*30 + (5*30)*k, Y: -330 - i*60 - (5*60)*k,
-                SCALING: 6, // scale 5 is a full editor grid for this object
+                SCALING: 5.25, // scale 5 is a full editor grid for this object
                 COLOR: _PINK_COLOR,
                 GROUPS: [_SCENE_GROUP, _MAIN_MENU_GROUPS[3], _MAIN_MENU_GROUPS[4+k]],
                 Z_ORDER: -2,
@@ -1715,6 +1749,83 @@ for i in 0..2 {
 // make circles invisibel at the satrt
 // average gd bug, we cant make it invisible so we need to add a white overlay lmfao
 -> _WHITE_BG_GROUPS[3].alpha(1, 0)
+
+// text for when the crash trigger doesnt work
+crash_text_group = ?g
+"that was supposed to crash your game".to_obj().with(GROUPS, [crash_text_group, _SCENE_GROUP]).with(X, 300).with(Y, -450).with(Z_LAYER, 7).with(Z_ORDER, -3).with(SCALING, 0.7).add()
+-> crash_text_group.alpha(0, 0) // make it invisible
+
+// "focus" overlay
+for i in 0..2 {
+    $.add(obj{
+        OBJ_ID: 211, // white block
+        X: 150+i*300, Y: -450,
+        GROUPS: [_SCENE_GROUP, _FOCUS_OVERLAY_GROUP],
+        COLOR: _RED_COLOR,
+        HVS: "0a0a-100a0a0", // full black
+        HVS_ENABLED: true,
+        SCALING: 10,
+        Z_ORDER: -10,
+        Z_LAYER: 5,
+        DONT_FADE: true,
+        DONT_ENTER: true,
+    })
+}
+
+// make it invis
+-> _FOCUS_OVERLAY_GROUP.alpha(0, 0)
+
+// main menu tutorial
+"press the left side of the screen,
+spacebar, or L1 to choose between options".to_obj().with(GROUPS, [_MAIN_MENU_TUTORIAL_GROUP, _SCENE_GROUP]).with(X, 180).with(Y, -450).with(Z_LAYER, 7).with(Z_ORDER, -3).with(SCALING, 0.45).add()
+
+"press the right side of the screen,
+the up arrow, or R1 to select the option".to_obj().with(GROUPS, [_MAIN_MENU_TUTORIAL_GROUP, _SCENE_GROUP]).with(X, 420).with(Y, -450).with(Z_LAYER, 7).with(Z_ORDER, -3).with(SCALING, 0.45).add()
+
+"(press any button to continue)".to_obj().with(GROUPS, [_MAIN_MENU_TUTORIAL_GROUP, _SCENE_GROUP]).with(X, 300).with(Y, -520).with(Z_LAYER, 7).with(Z_ORDER, -1).with(SCALING, 0.3).add()
+
+// dashed line
+for i in 0..24+1 {
+    $.add(obj{
+        OBJ_ID: 1111, // no collision slab item id
+        X: 300,
+        Y: -600 + i*12.5,
+        GROUPS: [_MAIN_MENU_TUTORIAL_GROUP, _SCENE_GROUP],
+        COLOR: _HALF_OPACITY_WHITE_COLOR,
+        SCALING: 0.37,
+        Z_LAYER: 5,
+        Z_ORDER: -2,
+        ROTATION: 90,
+        GLOW_DISABLED: true,
+    })
+}
+
+// make the tut invis
+-> _MAIN_MENU_TUTORIAL_GROUP.alpha(0, 0)
+
+// white overlay that appears when you press a side of the screen, basically touch feedback
+for j in 0..2 {
+    for i in 0..2 {
+        $.add(obj{
+            OBJ_ID: 211, // white block
+            X: 150+i*300, Y: -450+j*600,
+            GROUPS: [_SCENE_GROUP, _CLICK_OVERLAY_FEEDBACK_GROUP[i]],
+            COLOR: _RED_COLOR,
+            HVS: "0a0a100a0a0", // full white
+            HVS_ENABLED: true,
+            SCALING: 10,
+            Z_ORDER: 10,
+            Z_LAYER: 7,
+            DONT_FADE: true,
+            DONT_ENTER: true,
+        })
+        
+        // make them invisible
+        -> _CLICK_OVERLAY_FEEDBACK_GROUP[i].alpha(0, 0)
+    }
+}
+
+
 
 
 // all labels, custom for loop
@@ -1774,10 +1885,9 @@ $.add(obj{ // add invisible trigger at the start
 
 
 text_anim_start_group = ?g
-text_anim_group = ?g
 
 for i in 0.._TEXT_WORD_GROUPS.length {
-    $.add(obj{ // add invisible trigger at the start
+    $.add(obj{ // add invisible trigger
         OBJ_ID: 1007, // alpha trigger id
         X: 690, Y: 420,
         GROUPS: _TEXT_WORD_GROUPS[i],
@@ -1790,27 +1900,15 @@ for i in 0.._TEXT_WORD_GROUPS.length {
 
     if i == _TEXT_WORD_GROUPS.length - 1 { break }
 
-    if i == 0 {
-        $.add(obj{
-            OBJ_ID: 1268, // spawn trigger id
-            X: 420, Y: 690,
-            GROUPS: text_anim_start_group,
-            TARGET: _TEXT_WORD_GROUPS[i],
-            SPAWN_TRIGGERED: true,
-            MULTI_TRIGGER: true,
-            SPAWN_DURATION: 0.1,
-        })
-    } else {
-        $.add(obj{
-            OBJ_ID: 1268, // spawn trigger id
-            X: 420, Y: 690,
-            GROUPS: _TEXT_WORD_GROUPS[i-1],
-            TARGET: _TEXT_WORD_GROUPS[i],
-            SPAWN_TRIGGERED: true,
-            MULTI_TRIGGER: true,
-            SPAWN_DURATION: 0.1,
-        })
-    }
+    $.add(obj{
+        OBJ_ID: 1268, // spawn trigger id
+        X: 420, Y: 690,
+        GROUPS: text_anim_start_group if i == 0 else _TEXT_WORD_GROUPS[i-1],
+        TARGET: _TEXT_WORD_GROUPS[i],
+        SPAWN_TRIGGERED: true,
+        MULTI_TRIGGER: true,
+        SPAWN_DURATION: 0.1,
+    })
 }
 
 
@@ -1828,7 +1926,11 @@ for i in _TEXT_WORD_GROUPS {
 
 change_dialog = !{ // change through dialog boxes
     if in_scene_transition_counter == 0 {
-        if text_typing_animation_active_counter == 0 {
+        -> if text_typing_animation_active_counter == 1 {
+            stop_text_anim!
+            -> for i in _TEXT_WORD_GROUPS { -> i.alpha(1, 0) }
+            text_typing_animation_active_counter -= 1
+        } else {
             stop_text_anim!
             // i tried just setting the alpha of _TEXT_GROUP to 0 but then
             // it wouldnt want to show in the show_words func
@@ -1836,17 +1938,22 @@ change_dialog = !{ // change through dialog boxes
             -> _TEXT_GROUP.move(0, -100, 0)
 
             text_typing_animation_active_counter += 1
-
             text_anim_start_group!
-            wait(_TEXT_WORD_GROUPS.length*0.1)
-
-            // sorry specky but i might've had to do this :pensive:
-            text_typing_animation_active_counter = false
-        } else {
-            stop_text_anim!
-            -> for i in _TEXT_WORD_GROUPS { -> i.alpha(1, 0) }
-            text_typing_animation_active_counter = false
         }
+    }
+}
+
+close_tutorial = !{
+    if tutorial_closing_counter == 0 {
+        tutorial_closing_counter += 1
+
+        -> _FOCUS_OVERLAY_GROUP.alpha(0, 0.5)
+        -> _MAIN_MENU_TUTORIAL_GROUP.alpha(0, 0.5)
+
+        wait(0.5)
+
+        tutorial_closing_counter -= 1
+        in_tutorial_counter -= 1
     }
 }
 
@@ -1863,21 +1970,37 @@ selector_iter_counter = counter(0, bits=3)
 -> _MAIN_MENU_BUTTON_GROUPS[2].pulse(rgb(1, 1, 1), hold=999)
 
 click_left = !{
-    if in_game_counter == 1 { change_dialog! } // cant return from function early 😡😡
-    else if in_main_menu_counter == 1 {
-        // white
-        -> _MAIN_MENU_BUTTON_GROUPS[selector_iter_counter.to_const(0..3)].pulse(rgb(1, 1, 1), fade_in=0.1, hold=999)
+    -> _CLICK_OVERLAY_FEEDBACK_GROUP[0].alpha(0.15, 0)
 
+    if in_game_counter == 1 { change_dialog! } // cant return from function early 😡😡
+    else if in_tutorial_counter == 1 { close_tutorial! }
+    else if in_main_menu_counter == 1 {
+        // saved 1 group 💪💪💪
+        match selector_iter_counter {
+            ==0: () {
+                -> _MAIN_MENU_BUTTON_GROUPS[0].pulse(rgb(1, 1, 1), fade_in=0.1, hold=999)
+                -> _MAIN_MENU_BUTTON_GROUPS[1].pulse(rgb8(255, 220, 234), fade_in=0.1, hold=999)
+            } (),
+            ==1: () {
+                -> _MAIN_MENU_BUTTON_GROUPS[1].pulse(rgb(1, 1, 1), fade_in=0.1, hold=999)
+                -> _MAIN_MENU_BUTTON_GROUPS[2].pulse(rgb8(255, 220, 234), fade_in=0.1, hold=999)
+            } (),
+            ==2: () {
+                -> _MAIN_MENU_BUTTON_GROUPS[2].pulse(rgb(1, 1, 1), fade_in=0.1, hold=999)
+                -> _MAIN_MENU_BUTTON_GROUPS[0].pulse(rgb8(255, 220, 234), fade_in=0.1, hold=999)
+            } (),
+        }
+        
         selector_iter_counter ++
         if selector_iter_counter == 3 { selector_iter_counter -= 3 }
-
-        // pink
-        -> _MAIN_MENU_BUTTON_GROUPS[selector_iter_counter.to_const(0..3)].pulse(rgb8(255, 220, 234), fade_in=0.1, hold=999)
     }
 }
 
 click_right = !{
+    -> _CLICK_OVERLAY_FEEDBACK_GROUP[1].alpha(0.15, 0)
+
     if in_game_counter == 1 { change_dialog! } 
+    else if in_tutorial_counter == 1 { close_tutorial! }
     else if in_main_menu_counter == 1 {
         if selector_iter_counter == 0 { // play
             in_main_menu_counter -- // false
@@ -1911,13 +2034,22 @@ click_right = !{
 
                 in_credits_menu_counter ++
             }
-        } else if selector_iter_counter == 2 { // quit game        
+        } else if selector_iter_counter == 2 { // quit game
             // darken the color of the button
-            -> _MAIN_MENU_BUTTON_GROUPS[2].pulse(rgb8(255, 189, 225), fade_in=0.1)
+            -> _MAIN_MENU_BUTTON_GROUPS[2].pulse(rgb8(255, 189, 225), fade_in=0.1, hold=0.1, fade_out=0.5)
 
-            wait(0.06)
+            wait(0.04)
 
-            crash_group!
+            -> () {
+                wait(0.1)
+                -> _FOCUS_OVERLAY_GROUP.alpha(0.3, 0.5)
+                -> crash_text_group.alpha(1, 0.5)
+                wait(2)
+                -> _FOCUS_OVERLAY_GROUP.alpha(0, 0.5)
+                -> crash_text_group.alpha(0, 0.5)
+            } ()
+            
+            crash_func!
         }
     }
 }
@@ -1926,13 +2058,26 @@ click_right = !{
 on(gs.button_a(), click_left)
 on(gs.button_b(), click_right)
 
+on(gs.button_a_end(), !{
+    -> _CLICK_OVERLAY_FEEDBACK_GROUP[0].alpha(0, 0.12)
+})
+
+on(gs.button_b_end(), !{
+    -> _CLICK_OVERLAY_FEEDBACK_GROUP[1].alpha(0, 0.12)
+})
+
 
 // anti-porn bypass or whatever lmao
-_IMAGE_OUTLINE_GROUP.move(-1000, 0, 0)
+-> _IMAGE_OUTLINE_GROUP.move(-1000, 0, 0)
 for i in 0..MAIN_CHARACTERS_KEYS.length {
-    CHARACTERS[MAIN_CHARACTERS_KEYS[i]].group.move(-1000*(i+2), 0, 0)
+    -> CHARACTERS[MAIN_CHARACTERS_KEYS[i]].group.move(-1000*(i+2), 0, 0)
+}
+for i in 0.._ANTI_PORN_BYPASS_GROUPS.length {
+    -> _ANTI_PORN_BYPASS_GROUPS[i].move(-5000-1000*i, 0, 0)
 }
 
+
+$.writefile("./req_images.txt", @string(added_images).replace("'", '"'))
 if CACHE_IMAGES { $.writefile("./cache_output.txt", "{"+cached_images.map((k, v) => '"'+k+"\": \""+v+'"').join(", ")+"}") }
 $.print("words: ", words)
 
@@ -1942,7 +2087,6 @@ $.print("words: ", words)
 
 // splash screen
 wait(0.5)
-@log::runtime::flash()
 -> _WHITE_BG_GROUPS[1].alpha(0, 0) // hide the white bg used to hide the game at the start
 -> _SPLASH_GROUPS[0].alpha(1, 0.25)
 wait(1.25)
@@ -1970,7 +2114,23 @@ wait(0.2)
 -> _MAIN_MENU_GROUPS[2].move(0, 120, 2.5, EXPONENTIAL_OUT)
 -> _MAIN_MENU_GROUPS[3].move(0, 75, 3, EXPONENTIAL_OUT)
 
-in_main_menu_counter += 1 // true
+// spread out the girls (😳)
+-> _MAIN_MENU_GIRLS_GROUPS[0].move(-35/3, 0, 2, EXPONENTIAL_OUT)
+-> _MAIN_MENU_GIRLS_GROUPS[1].move(-15/3, 0, 2, EXPONENTIAL_OUT)
+-> _MAIN_MENU_GIRLS_GROUPS[2].move(15/3, 0, 2, EXPONENTIAL_OUT)
+-> _MAIN_MENU_GIRLS_GROUPS[3].move(35/3, 0, 2, EXPONENTIAL_OUT)
+
+// tutorial
+-> () {
+    wait(1.5)
+    -> _FOCUS_OVERLAY_GROUP.alpha(0.4, 0.4)
+    -> _MAIN_MENU_TUTORIAL_GROUP.alpha(1, 0.8)
+
+    wait(1)
+
+    in_main_menu_counter += 1 // true
+    in_tutorial_counter += 1 // true
+} ()
 
 // the part where it flashes white synced to the song, hopefully
 wait(0.93)

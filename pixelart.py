@@ -4,12 +4,19 @@
 import cv2
 import colorsys
 import os
+import json
 
 # ACTUAL CODE
 
 HEIGHT = 38
 
-# allowed_files = ["class.png", "club.png", "corridor.png", "residential.png"]
+allowed_files = None
+try:
+    with open('./req_images.txt', 'r') as file:
+        allowed_files = json.load(file)
+except FileNotFoundError:
+    print("req_images.txt doesnt exist, using all images instead.")
+
 
 # we exclude folders because spwn is slow as fuck with more than hundreds of kb in memory
 excluded_folders = ["cg", "menu", "poem_special", "stab", "bar", "button", "mouse", "overlay", "phone", "poemgame", "scrollbar", "slider"]
@@ -25,6 +32,10 @@ def read_img(subdir, file):
     global HEIGHT
     for i in excluded_folders:
         if i in subdir.replace(dir+os.sep, "").replace("\\", "/").split("/"): return
+    
+    dir_slash_file = subdir.replace(dir+os.sep, "").replace("\\", "/").replace("images/", "")+"/"+file
+
+    if allowed_files != None and dir_slash_file not in allowed_files: return
 
     img = cv2.imread(os.path.join(subdir, file), cv2.IMREAD_UNCHANGED)
     width, height, _ = img.shape
@@ -39,7 +50,7 @@ def read_img(subdir, file):
         mask[y_start:y_end, x_start:x_end, 3] = 0
         img = cv2.copyTo(img, mask)
 
-    frames[subdir.replace(dir+os.sep, "").replace("\\", "/").replace("images/", "")+"/"+file] = img
+    frames[dir_slash_file] = img
 
 print("reading images...")
 for subdir, dirs, files in os.walk(dir):
