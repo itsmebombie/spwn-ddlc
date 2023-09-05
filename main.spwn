@@ -26,7 +26,7 @@ _DIALOG_COLOR = 2c
 _OUTLINE_COLOR = 3c
 _CIRCLE_COLOR = 5c
 
-PLAYER_NAME = "bombie"
+PLAYER_NAME = "Player"
 LEVEL_DURATION = 10 * 60 // seconds
 
 LABELS_EXCLUSION_LIST = ["ch0_kill"]
@@ -72,15 +72,15 @@ _IMAGE_OUTLINE_GROUP = 3g
 _SPLASH_GROUPS = [4g, ?g]
 _MAIN_MENU_GROUPS = [?g, 5g, 6g, ?g, ?g, ?g]
 _MAIN_MENU_GIRLS_GROUPS = [7g, 8g, 9g, 10g]
+_ANTI_NSFW_BYPASS_GROUPS = [99g, 98g, 97g, 96g]
 let _BG_GROUPS = []
 
 _CREDITS_MENU_GROUP = ?g
 _BLACK_MASK_GROUP = ?g
 _MAIN_MENU_BUTTON_GROUPS = [?g, ?g, ?g]
-_MAIN_MENU_BUTTON_GROUPS_SHIFTED = [_MAIN_MENU_BUTTON_GROUPS[1], _MAIN_MENU_BUTTON_GROUPS[2], _MAIN_MENU_BUTTON_GROUPS[0]]
 _WHITE_BG_GROUPS = [?g, ?g, ?g, ?g]
 _CLICK_OVERLAY_FEEDBACK_GROUP = [?g, ?g]
-_ANTI_PORN_BYPASS_GROUPS = [99g, 98g, 97g, 96g]
+_END_SCREEN_GROUPS = [?g, ?g, ?g, ?g]
 
 _FOCUS_OVERLAY_GROUP = ?g
 _MAIN_MENU_TUTORIAL_GROUP = ?g
@@ -157,7 +157,7 @@ image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number 
     frame_res = frame_data.res
     frame = frame_data.image.reverse() // this is the actual image
 
-    size = (1/(frame_res[0]/10)+0.015) * size_multi
+    size = (1/(frame_res[0]/10)+0.02) * size_multi
 
     added_images.push(file_name)
     if READ_CACHED_IMAGES && (readed_cached_images.get(file_name, default=null) != null && !(file_name in CACHE_EXCLUDED_IMAGES)) {
@@ -188,8 +188,8 @@ image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number 
             if frame[j][i] == [] { continue }
             [h, s, v] = frame[j][i]
 
-            anti_porn_bypass = i%2 + (j%2)*2
-            anti_porn_bypass_x = (5000 + anti_porn_bypass * 1000)*3
+            anti_nsfw_bypass = i%2 + (j%2)*2
+            anti_nsfw_bypass_x = (5000 + anti_nsfw_bypass * 1000)*3
 
             can_draw_outline = outline(i, j) if draw_outline else false
 
@@ -200,9 +200,9 @@ image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number 
                 SCALING: size,
                 HVS_ENABLED: true,
                 COLOR: _RED_COLOR,
-                GROUPS: [_SCENE_GROUP, _ANTI_PORN_BYPASS_GROUPS[anti_porn_bypass], groups].flatten(),
+                GROUPS: [_SCENE_GROUP, _ANTI_NSFW_BYPASS_GROUPS[anti_nsfw_bypass], groups].flatten(),
                 HVS: @string(h)+"a"+@string(s/1000)+"a"+@string(v/1000+0.02)+"a0a0",
-                X: x_off + i*(30 * (size-0.01)) + anti_porn_bypass_x, Y: y_off + j*(30 * (size-0.01)),
+                X: x_off + i*(30 * (size-0.01)) + anti_nsfw_bypass_x, Y: y_off + j*(30 * (size-0.01)),
             }
 
             temp_obj.add()
@@ -215,10 +215,10 @@ image = (file_name: @string, groups: @array, x_off: @number = 0, y_off: @number 
                     Z_ORDER: z_order-1,
                     SCALING: size+0.075,
                     HVS_ENABLED: true,
-                    GROUPS: [_SCENE_GROUP, _IMAGE_OUTLINE_GROUP, _ANTI_PORN_BYPASS_GROUPS[anti_porn_bypass], groups].flatten(),
+                    GROUPS: [_SCENE_GROUP, _IMAGE_OUTLINE_GROUP, _ANTI_NSFW_BYPASS_GROUPS[anti_nsfw_bypass], groups].flatten(),
                     HVS: "0a0a-100a0a0", // full black
                     HIGH_DETAIL: true,
-                    X: 3000 + x_off + i*(30 * (size-0.01)) + anti_porn_bypass_x, // +3000 for the anti-porn bypass lmao
+                    X: 3000 + x_off + i*(30 * (size-0.01)) + anti_nsfw_bypass_x, // +3000 for the anti-nsfw bypass lmao
                     Y: y_off + j*(30 * (size-0.01)),
                 }
                 outline_obj.add()
@@ -384,10 +384,7 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
             //     TEXT: $.b64encode(head_img.split("/")[1]).replace("/", "_").replace("\\+", "-")
             // })
 
-            // special case where natsukis head has a small offset on 3.png and 3b.png
-            // without this, natsuki looks "decapitated"
-            natsuki_3_off = [(18*0.42), (22*0.47)] if char == "n" && (body_img == "natsuki/3.png" || body_img == "natsuki/3b.png") else [0, 0]
-            image(head_img, [CHARACTERS[char].group, CHARACTERS[char].head_group], 150 + bypass_offset - natsuki_3_off[0], head_pos*6 - natsuki_3_off[1] - 5, char_z_order, -1)
+            image(head_img, [CHARACTERS[char].group, CHARACTERS[char].head_group], 150 + bypass_offset, head_pos*6 - 5, char_z_order, -1)
             CHARACTERS[char].added_sprites.push(head_img)
         }
     }
@@ -404,7 +401,11 @@ change_sprite = (char, sprite, x_off: @number = 0, y_off: @number = 0) {
             //     DONT_ENTER: true,
             //     TEXT: $.b64encode(body_img.split("/")[1]).replace("/", "_").replace("\\+", "-")
             // })
-            image(body_img, [CHARACTERS[char].group, CHARACTERS[char].l_group], 150 + bypass_offset, l_pos*6 - 5, char_z_order, -1)
+            
+            // special case where natsukis head has a small offset on 3.png and 3b.png
+            // without this, natsuki looks "decapitated"
+            natsuki_3_off = [18*0.14, 22*0.36] if char == "n" && (body_img == "natsuki/3.png" || body_img == "natsuki/3b.png") else [0, 0]
+            image(body_img, [CHARACTERS[char].group, CHARACTERS[char].l_group], 150 + bypass_offset - natsuki_3_off[0], l_pos*6 + natsuki_3_off[1] - 5, char_z_order, -1)
             CHARACTERS[char].added_sprites.push(body_img)
         }
     }
@@ -1825,8 +1826,34 @@ for j in 0..2 {
     }
 }
 
+// end screen
 
+// end screen text objects
+"END".to_obj().with(GROUPS, [_SCENE_GROUP, _END_SCREEN_GROUPS[0]]).with(X, 300).with(Y, 750).with(Z_LAYER, 7).with(Z_ORDER, 1).with(SCALING, 1).add()
+"(whole act comig soom)".to_obj().with(GROUPS, [_SCENE_GROUP, _END_SCREEN_GROUPS[1]]).with(X, 300).with(Y, 720).with(Z_LAYER, 7).with(Z_ORDER, 1).with(SCALING, 0.4).add()
 
+// hide them
+-> _END_SCREEN_GROUPS[0].alpha(0, 0)
+-> _END_SCREEN_GROUPS[1].alpha(0, 0)
+
+// add speed portal
+$.add(obj{
+    OBJ_ID: 1334, // 4x speed
+    X: 150, Y: 1300,
+    GROUPS: [_SCENE_GROUP, _INVISIBLE_GROUP, _END_SCREEN_GROUPS[2]],
+    SCALING: 8,
+})
+
+// add rotation center
+$.add(obj{
+    OBJ_ID: 1,
+    X: 150, Y: 1300,
+    GROUPS: [_SCENE_GROUP, _INVISIBLE_GROUP, _END_SCREEN_GROUPS[3]],
+    SCALING: 0.1,
+})
+
+// rotate the speed portal so it moves on the x axis, which is otherwise impossible
+-> _END_SCREEN_GROUPS[2].rotate(_END_SCREEN_GROUPS[3], LEVEL_DURATION*360, LEVEL_DURATION)
 
 // all labels, custom for loop
 // let labels = {} // moved to just before call_label()
@@ -1859,6 +1886,39 @@ while line_idx_for_labels < lines.length - 1 {
     }
     
     if label_name == "ch0_main" { call_label(label_name) }
+
+    // switch to end screen
+    temp_group = ?g
+    i+=300
+
+    // tfw the spwn optimizer doesnt allow you to use wait() macros
+    spawn_trigger(!{
+        -> _BACKGROUNDS_GROUP.toggle_off()
+        -> _TEXT_GROUP.toggle_off()
+        -> _SCENE_GROUP.move(0, -200, 0)
+    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).with(MULTI_TRIGGER, true).add()
+
+    spawn_trigger(!{
+        -> _END_SCREEN_GROUPS[0].alpha(1, 1)
+    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene + 1.5).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).with(MULTI_TRIGGER, true).add()
+    
+    spawn_trigger(!{
+        -> _END_SCREEN_GROUPS[1].alpha(1, 0.5)
+    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene + 4).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).with(MULTI_TRIGGER, true).add()
+
+    spawn_trigger(!{
+        -> _END_SCREEN_GROUPS[0].alpha(0, 0.5)
+        -> _END_SCREEN_GROUPS[1].alpha(0, 0.5)
+    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene + 8).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).with(MULTI_TRIGGER, true).add()
+
+    spawn_trigger(!{
+        -> _END_SCREEN_GROUPS[2].move(0, -200, 0)
+        -> _END_SCREEN_GROUPS[3].move(0, -200, 0)
+    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene + 8).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).with(MULTI_TRIGGER, true).add()
+
+    // i have to add 2 instead of stuffing everything in one because of the optimizer lmao
+    collectable(wipe_left_scene_func)
+    collectable(temp_group)
 }
 
 $.add(obj{ // follow player
@@ -2067,13 +2127,13 @@ on(gs.button_b_end(), !{
 })
 
 
-// anti-porn bypass or whatever lmao
+// anti-nsfw bypass or whatever lmao
 -> _IMAGE_OUTLINE_GROUP.move(-1000, 0, 0)
 for i in 0..MAIN_CHARACTERS_KEYS.length {
     -> CHARACTERS[MAIN_CHARACTERS_KEYS[i]].group.move(-1000*(i+2), 0, 0)
 }
-for i in 0.._ANTI_PORN_BYPASS_GROUPS.length {
-    -> _ANTI_PORN_BYPASS_GROUPS[i].move(-5000-1000*i, 0, 0)
+for i in 0.._ANTI_NSFW_BYPASS_GROUPS.length {
+    -> _ANTI_NSFW_BYPASS_GROUPS[i].move(-5000-1000*i, 0, 0)
 }
 
 

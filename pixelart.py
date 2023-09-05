@@ -8,7 +8,7 @@ import json
 
 # ACTUAL CODE
 
-HEIGHT = 38
+HEIGHT = 38 # changing this will cause white lines where the images get cut off pls fix this
 
 allowed_files = None
 try:
@@ -44,8 +44,8 @@ def read_img(subdir, file):
     width, height, _ = img.shape
 
     if file == "splash.png": # make the splash text go bye-bye so we can replace it later in gd
-        x_start, y_start = 475, 475
-        x_end, y_end = 825, 575
+        x_start, y_start = 460, 460
+        x_end, y_end = 840, 590
         mask = img.copy()
         mask[y_start:y_end, x_start:x_end, 3] = 0
         img = cv2.copyTo(img, mask)
