@@ -277,12 +277,12 @@ let i = 35-300
 
 // this looks so much cleaner
 collectable = (target, offset: @number = 0, activate_group: @bool = true) {
-    [x_off, y_off] = [300, 13]
+    [x_off, y_off] = [210, 43]
     $.add(obj{
         OBJ_ID: 1614, // collectable id
         X: x_off, Y: y_off + i + offset,
         GROUPS: [_SCENE_GROUP, _TEXT_GROUP, _INVISIBLE_GROUP],
-        SCALING: 6,
+        SCALING: 13,
         TARGET: target,
         PICKUP_MODE: 2, // toggle trigger
         ACTIVATE_GROUP: activate_group,
