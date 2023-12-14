@@ -27,7 +27,7 @@ _OUTLINE_COLOR = 3c
 _CIRCLE_COLOR = 5c
 
 PLAYER_NAME = "Player"
-LEVEL_DURATION = 10 * 60 // seconds
+LEVEL_DURATION = 20 * 60 // seconds
 
 LABELS_EXCLUSION_LIST = ["ch0_kill"]
 
@@ -1894,7 +1894,7 @@ while line_idx_for_labels < lines.length - 1 {
     // tfw the spwn optimizer doesnt allow you to use wait() macros
     spawn_trigger(!{
         -> _BACKGROUNDS_GROUP.toggle_off()
-        -> _TEXT_GROUP.toggle_off()
+        // -> _TEXT_GROUP.toggle_off() // what was i thinking
         -> _SCENE_GROUP.move(0, -200, 0)
     }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).with(MULTI_TRIGGER, true).add()
 
