@@ -28,6 +28,7 @@ _CIRCLE_COLOR = 5c
 
 PLAYER_NAME = "Player"
 LEVEL_DURATION = 20 * 60 // seconds
+LEVEL_DURATION_2_2 = 69 // seconds
 
 LABELS_EXCLUSION_LIST = ["ch0_kill"]
 
@@ -49,9 +50,11 @@ CACHE_EXCLUDED_IMAGES = []
 
 // DO NOT EDIT ANYTHING BELOW UNLESS YOU KNOW WHAT YOU'RE DOING
 
-gs = import gamescene
+// gs = import gamescene // 2.2
 sprites = import "sprites.spwn"
 extract obj_props
+extract import obj_props_2_2
+gs = import gamescene_2_2
 
 _PINK_COLOR.set(rgb8(255, 230, 244))
 _DARK_PINK_COLOR.set(rgb8(255, 189, 225))
@@ -80,7 +83,7 @@ _BLACK_MASK_GROUP = ?g
 _MAIN_MENU_BUTTON_GROUPS = [?g, ?g, ?g]
 _WHITE_BG_GROUPS = [?g, ?g, ?g, ?g]
 _CLICK_OVERLAY_FEEDBACK_GROUP = [?g, ?g]
-_END_SCREEN_GROUPS = [?g, ?g, ?g, ?g]
+_END_SCREEN_GROUPS = [?g, ?g, ?g, ?g, ?g]
 
 _FOCUS_OVERLAY_GROUP = ?g
 _MAIN_MENU_TUTORIAL_GROUP = ?g
@@ -143,6 +146,10 @@ tutorial_closing_counter = counter(false)
 
 // this adds the no fade object and the no bg effect object
 $.add(obj{HVS: ";1,1819,2,-29,3,15,36,1,57,1001;1,22,2,-29,3,45,36,1,57,1001"})
+
+// this adds the objetcs that limit the 2nd plauer to go too up
+$.add(obj{HVS: ";1,1755,2,105,3,74.636,20,1,57,1001,155,2,128,32.466,129,27.440,36,1;
+1,207,2,195,3,555,20,1,57,1001,155,3,156,4,24,-5,128,41.099,129,29.879,41,1,43,0a1a0a0a0,42,1,44,0a1a0a0a0;"})
 
 let cached_images = {}
 let added_images = []
@@ -277,7 +284,7 @@ let i = 35-300
 
 // this looks so much cleaner
 collectable = (target, offset: @number = 0, activate_group: @bool = true) {
-    [x_off, y_off] = [210, 43]
+    [x_off, y_off] = [210, 60]
     $.add(obj{
         OBJ_ID: 1614, // collectable id
         X: x_off, Y: y_off + i + offset,
@@ -1578,7 +1585,7 @@ for i in 0..2 {
 // splash 1
 image("bg/splash.png", [_SPLASH_GROUPS[0]], 35, -590, 2, draw_outline=false)
 "   TEAM\nSALVATO".to_obj().with(GROUPS, [_SPLASH_GROUPS[0], _SCENE_GROUP]).with(X, 300).with(Y, -525).with(SCALING, 0.7).add()
-"ported/recreated by bombie using SPWN (in GD 2.1)".to_obj().with(GROUPS, [_SPLASH_GROUPS[0], _SCENE_GROUP]).with(X, 300).with(Y, -590).with(SCALING, 0.4).add()
+"ported/recreated by bombie using SPWN (in GD 2.1, adapted for 2.2)".to_obj().with(GROUPS, [_SPLASH_GROUPS[0], _SCENE_GROUP]).with(X, 300).with(Y, -590).with(SCALING, 0.4).add()
 
 // splash 2
 @array("This is a Doki Doki Literature Club fan game that is
@@ -1836,24 +1843,39 @@ for j in 0..2 {
 -> _END_SCREEN_GROUPS[0].alpha(0, 0)
 -> _END_SCREEN_GROUPS[1].alpha(0, 0)
 
-// add speed portal
-$.add(obj{
-    OBJ_ID: 1334, // 4x speed
-    X: 150, Y: 1300,
-    GROUPS: [_SCENE_GROUP, _INVISIBLE_GROUP, _END_SCREEN_GROUPS[2]],
-    SCALING: 8,
-})
 
-// add rotation center
-$.add(obj{
-    OBJ_ID: 1,
-    X: 150, Y: 1300,
-    GROUPS: [_SCENE_GROUP, _INVISIBLE_GROUP, _END_SCREEN_GROUPS[3]],
-    SCALING: 0.1,
-})
+// 2.1 end part
 
-// rotate the speed portal so it moves on the x axis, which is otherwise impossible
--> _END_SCREEN_GROUPS[2].rotate(_END_SCREEN_GROUPS[3], LEVEL_DURATION*360, LEVEL_DURATION)
+// // add speed portal
+// $.add(obj{
+//     OBJ_ID: 1334, // 4x speed
+//     X: 150, Y: 1300,
+//     GROUPS: [_SCENE_GROUP, _INVISIBLE_GROUP, _END_SCREEN_GROUPS[2]],
+//     SCALING: 8,
+// })
+
+// // add rotation center
+// $.add(obj{
+//     OBJ_ID: 1,
+//     X: 150, Y: 1300,
+//     GROUPS: [_SCENE_GROUP, _INVISIBLE_GROUP, _END_SCREEN_GROUPS[3]],
+//     SCALING: 0.1,
+// })
+
+// // rotate the speed portal so it moves on the x axis, which is otherwise impossible
+// -> _END_SCREEN_GROUPS[2].rotate(_END_SCREEN_GROUPS[3], LEVEL_DURATION*360, LEVEL_DURATION)
+
+
+// 2.2 end part
+$.add(obj{
+    OBJ_ID: 3600,
+    X: -69, Y: -7.2, // these are random numbers, future person reading this (me)
+    GROUPS: _END_SCREEN_GROUPS[4],
+    CENTER: 9998g, // this group will be there instaed of the default end portal (nothing)
+    END_NO_EFFECTS: true,
+    END_INSTANT: true,
+    SPAWN_TRIGGERED: true,
+})
 
 // all labels, custom for loop
 // let labels = {} // moved to just before call_label()
@@ -1896,42 +1918,44 @@ while line_idx_for_labels < lines.length - 1 {
         -> _BACKGROUNDS_GROUP.toggle_off()
         // -> _TEXT_GROUP.toggle_off() // what was i thinking
         -> _SCENE_GROUP.move(0, -200, 0)
-    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).with(MULTI_TRIGGER, true).add()
+    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).add()
 
     spawn_trigger(!{
         -> _END_SCREEN_GROUPS[0].alpha(1, 1)
-    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene + 1.5).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).with(MULTI_TRIGGER, true).add()
+    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene + 1.5).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).add()
     
     spawn_trigger(!{
         -> _END_SCREEN_GROUPS[1].alpha(1, 0.5)
-    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene + 4).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).with(MULTI_TRIGGER, true).add()
+    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene + 4).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).add()
 
     spawn_trigger(!{
         -> _END_SCREEN_GROUPS[0].alpha(0, 0.5)
         -> _END_SCREEN_GROUPS[1].alpha(0, 0.5)
-    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene + 8).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).with(MULTI_TRIGGER, true).add()
+    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene + 8).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).add()
+    
+    spawn_trigger(_END_SCREEN_GROUPS[4], WITH_TOKEN_WAIT_TIMES.wipeleft_scene + 8).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).add()
 
     spawn_trigger(!{
         -> _END_SCREEN_GROUPS[2].move(0, -200, 0)
         -> _END_SCREEN_GROUPS[3].move(0, -200, 0)
-    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene + 8).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).with(MULTI_TRIGGER, true).add()
+    }, WITH_TOKEN_WAIT_TIMES.wipeleft_scene + 8).with(GROUPS, temp_group).with(SPAWN_TRIGGERED, true).add()
 
     // i have to add 2 instead of stuffing everything in one because of the optimizer lmao
     collectable(wipe_left_scene_func)
     collectable(temp_group)
 }
 
-$.add(obj{ // follow player
-    OBJ_ID: 901, // move trigger id
-    X: 225, Y: -135,
-    TARGET: _SCENE_GROUP,
-    MOVE_X: PLAYER_SPEED*30*LEVEL_DURATION, // move to player
-    DURATION: LEVEL_DURATION,
-})
+// $.add(obj{ // follow player, not needed in 2.2
+//     OBJ_ID: 901, // move trigger id
+//     X: 225, Y: -135,
+//     TARGET: _SCENE_GROUP,
+//     MOVE_X: PLAYER_SPEED*30*LEVEL_DURATION, // move to player
+//     DURATION: LEVEL_DURATION,
+// })
 
 $.add(obj{ // so the level is long enough or something
     OBJ_ID: 1,
-    X: PLAYER_SPEED*30*LEVEL_DURATION, Y: -69,
+    X: PLAYER_SPEED*30*LEVEL_DURATION_2_2, Y: -69,
 })
 
 $.add(obj{ // add invisible trigger at the start
@@ -2115,14 +2139,14 @@ click_right = !{
 }
 
 
-on(gs.button_a(), click_left)
-on(gs.button_b(), click_right)
+gs.button_a(click_left)
+gs.button_b(click_right)
 
-on(gs.button_a_end(), !{
+gs.button_a_end(!{
     -> _CLICK_OVERLAY_FEEDBACK_GROUP[0].alpha(0, 0.12)
 })
 
-on(gs.button_b_end(), !{
+gs.button_b_end(!{
     -> _CLICK_OVERLAY_FEEDBACK_GROUP[1].alpha(0, 0.12)
 })
 
@@ -2166,7 +2190,7 @@ wait(0.5)
 // could be better but it fucking works :shrug::shrug::shrug:
 -> while_loop(() => true, () { _MAIN_MENU_GROUPS[4].move(200, -200, 0); wait(20); _MAIN_MENU_GROUPS[5].move(200, -200, 0) }, 20)
 wait(0.5)   
--> _SCENE_GROUP.alpha(0, 0)
+// -> _SCENE_GROUP.alpha(0, 0) // ??????????????????????????????????????????????
 -> _SCENE_GROUP.alpha(1, 0.3)
 -> _MAIN_MENU_GROUPS[0].move(250/3, 0, 1.5, EXPONENTIAL_OUT)
 -> _MAIN_MENU_GROUPS[1].move(0, -45, 2, BOUNCE_OUT)

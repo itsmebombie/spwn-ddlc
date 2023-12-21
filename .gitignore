@@ -2,3 +2,6 @@
 /.vscode
 /cache_output.txt
 /req_images.txt
+
+# https://github.com/itsmebombie/obj_props-2.2/
+/libraries/
