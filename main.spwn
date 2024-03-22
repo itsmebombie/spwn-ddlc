@@ -15,7 +15,10 @@ You can download Doki Doki Literature Club at: http://ddlc.moe
 
 // CONFIG
 
-lines = $.readfile("./ddlc-decompiled/scripts.rpa/script-ch0.rpy").split("\r\n")
+SCRIPTS_RPA_PATH = "./ddlc-decompiled/scripts.rpa/"
+
+lines = $.readfile(SCRIPTS_RPA_PATH + "script-ch0.rpy").replace("\r", "").split("\n") + 
+$.readfile(SCRIPTS_RPA_PATH + "script.rpy").replace("\r", "").split("\n")
 
 _PINK_COLOR = ?c
 _DARK_PINK_COLOR = ?c
@@ -96,16 +99,19 @@ sprite_pos_start = {l_pos: 0, r_pos: 0, head_pos: 0, char_pos: 0}
 // using manual groups because of the caching system lmfao
 let CHARACTERS = {
     narrator: { name: "", },
-    s: { name: "???", pos: {x: 90, y: 50}, group: 11g, visible: false, 
+    s: { pos: {x: 90, y: 50}, group: 11g, visible: false, 
         head_group: 12g, l_group: 13g, r_group: 14g, char_group: 15g, sprite_pos: sprite_pos_start, added_sprites: [], },
-    m: { name: "Girl 3", pos: {x: 90, y: 50}, group: 21g, visible: false, 
+    m: { pos: {x: 90, y: 50}, group: 21g, visible: false, 
         head_group: 22g, l_group: 23g, r_group: 24g, char_group: 25g, sprite_pos: sprite_pos_start, added_sprites: [], },
-    n: { name: "Girl 2", pos: {x: 90, y: 50}, group: 31g, visible: false, 
+    n: { pos: {x: 90, y: 50}, group: 31g, visible: false, 
         head_group: 32g, l_group: 33g, r_group: 34g, char_group: 35g, sprite_pos: sprite_pos_start, added_sprites: [], },
-    y: { name: "Girl 1", pos: {x: 90, y: 50}, group: 41g, visible: false, 
+    y: { pos: {x: 90, y: 50}, group: 41g, visible: false, 
         head_group: 42g, l_group: 43g, r_group: 44g, char_group: 45g, sprite_pos: sprite_pos_start, added_sprites: [], },
-    ny: { name: "Nat & Yuri", },
-    mc: { name:  PLAYER_NAME, },
+}
+
+let variables = {
+    mc_name: PLAYER_NAME,
+    ny_name: "Nat & Yuri",
 }
 
 TEXT_CHAR_SIZE_LIST = {
@@ -129,7 +135,7 @@ BACKGROUND_FILE_NAMES = ["bg/residential.png", "bg/class.png", "bg/club.png", "b
 
 WITH_TOKEN_WAIT_TIMES = {"wipeleft_scene": 1, "wipeleft": 0.2}
 
-TOKENS = ["scene", CHARACTERS_TOKENS, "$", "show", "hide", "with"].flatten()
+TOKENS = ["scene", CHARACTERS_TOKENS, "$", "show", "hide", "with", "call"].flatten()
 
 let current_character = "your mother"
 let current_bg = ""
@@ -566,7 +572,7 @@ say_character = (command, tokens, x_off: @number = 0, y_off: @number = 0, speake
         y -= 45
     }
     
-    current_character = command
+    current_char_first_letter = command
     $.add(obj{ // speaker name
         OBJ_ID: 914,
         X: speaker_x_off, Y: speaker_y_off + i,
@@ -574,7 +580,8 @@ say_character = (command, tokens, x_off: @number = 0, y_off: @number = 0, speake
         GROUPS: [_TEXT_GROUP, _SCENE_GROUP, _TEXT_SECTION_GROUPS[-1]],
         DONT_FADE: true,
         DONT_ENTER: true,
-        TEXT: $.b64encode(CHARACTERS[current_character].name).replace("/", "_").replace("\\+", "-")
+        TEXT: $.b64encode(variables[current_char_first_letter + "_name"]).
+        replace("/", "_").replace("\\+", "-")
     })
 }
 
@@ -1442,7 +1449,9 @@ python_single_line = (tokens) {
 
     // s_name = "Sayori"
     if variable.substr(1, 6) == "_name" { // if it sets someone's name
-        CHARACTERS[variable[0]].name = value.replace('"', "").replace("'", "")
+        let variables[variable] = value.replace('"', "").replace("'", "")
+    } else {
+        let variables[variable] = value
     }
 }
 
@@ -1451,6 +1460,12 @@ let labels = {}
 call_label = (label_name: @string) {
     let current_code_blocks = []
     let i_line = 0
+
+    if !(label_name in labels) {
+        $.print(label_name, " is not a valid label")
+        return
+    }
+
     for line in labels[label_name] {
         [__tokens, tabs] = labels[label_name][i_line]
     
@@ -1477,7 +1492,7 @@ call_label = (label_name: @string) {
     
         // doing it like this cuz u cant break in a match statement lmao
         // im gonna change this later so it just resumes instead of breaking
-        if command == "call" { break }
+        // if command == "call" { break }
 
         // $.print(modified_line)
         i_line ++
@@ -1907,7 +1922,8 @@ while line_idx_for_labels < lines.length - 1 {
         i_line ++
     }
     
-    if label_name == "ch0_main" { call_label(label_name) }
+    if label_name == "start" { call_label(label_name) }
+    else { continue } // we *only* want it to skip to the end screen if we finished the start label
 
     // switch to end screen
     temp_group = ?g
