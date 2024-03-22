@@ -69,16 +69,16 @@ char_pos = (n: @number) => { char_pos: n }
 sprites = {
     images: {
         s: {
-            ..head_generator("sayori", "1", "1l", "1r", ALPHABET[0:25], true),
-            ..head_generator("sayori", "2", "1l", "2r", ALPHABET[0:25], true),
-            ..head_generator("sayori", "3", "2l", "1r", ALPHABET[0:25], true),
-            ..head_generator("sayori", "4", "2l", "2r", ALPHABET[0:25], true),
-
             "5": char("sayori", "3a"),
             "5a": char("sayori", "3a"),
             "5b": char("sayori", "3b"),
             "5c": char("sayori", "3c"),
             "5d": char("sayori", "3d"),
+
+            ..head_generator("sayori", "1", "1l", "1r", ALPHABET[0:25], true),
+            ..head_generator("sayori", "2", "1l", "2r", ALPHABET[0:25], true),
+            ..head_generator("sayori", "3", "2l", "1r", ALPHABET[0:25], true),
+            ..head_generator("sayori", "4", "2l", "2r", ALPHABET[0:25], true),
 
             ..head_generator("sayori", "1b", "1bl", "1br", ALPHABET[0:25]),
             ..head_generator("sayori", "2b", "1bl", "2br", ALPHABET[0:25]),
@@ -128,6 +128,13 @@ sprites = {
         },
 
         y: {
+            "4": { body: "yuri/3.png", head: "yuri/a2.png" },
+            "4a": { body: "yuri/3.png", head: "yuri/a2.png" },
+            "4b": { body: "yuri/3.png", head: "yuri/b2.png" },
+            "4c": { body: "yuri/3.png", head: "yuri/c2.png" },
+            "4d": { body: "yuri/3.png", head: "yuri/d2.png" },
+            "4e": { body: "yuri/3.png", head: "yuri/e2.png" },
+
             ..head_generator("yuri", "1", "1l", "1r", ALPHABET[0:24], generate_default = true),
             ..head_generator("yuri", "1y", "1l", "1r", NUMBERS[1:8], file_prefix = "y"),
 
@@ -136,13 +143,6 @@ sprites = {
 
             ..head_generator("yuri", "3", "2l", "2r", ALPHABET[0:24], generate_default = true),
             ..head_generator("yuri", "3y", "2l", "2r", NUMBERS[1:8], file_prefix = "y"),
-
-            "4": { body: "yuri/3.png", head: "yuri/a2.png" },
-            "4a": { body: "yuri/3.png", head: "yuri/a2.png" },
-            "4b": { body: "yuri/3.png", head: "yuri/b2.png" },
-            "4c": { body: "yuri/3.png", head: "yuri/c2.png" },
-            "4d": { body: "yuri/3.png", head: "yuri/d2.png" },
-            "4e": { body: "yuri/3.png", head: "yuri/e2.png" },
 
             ..head_generator("yuri", "1b", "1bl", "1br", ALPHABET[0:24]),
             ..head_generator("yuri", "2b", "1bl", "2br", ALPHABET[0:24]),
@@ -156,27 +156,29 @@ sprites = {
         },
 
         m: {
+            "5": char("monika", "3a"),
+            "5a": char("monika", "3a"),
+            "5b": char("monika", "3b"),
+            
             ..head_generator("monika", "1", "1l", "1r", ALPHABET[0:18], true),
             ..head_generator("monika", "2", "1l", "2r", ALPHABET[0:18], true),
             ..head_generator("monika", "3", "2l", "1r", ALPHABET[0:18], true),
             ..head_generator("monika", "4", "2l", "2r", ALPHABET[0:18], true),
-            "5": char("monika", "3a"),
-            "5a": char("monika", "3a"),
-            "5b": char("monika", "3b"),
         }
     },
 
     positions: {
         s: {
-            ..head_pos_generator("1", ALPHABET[0:25], generate_default = true),
-            ..head_pos_generator("2", ALPHABET[0:25], generate_default = true, r_pos = 100),
-            ..head_pos_generator("3", ALPHABET[0:25], generate_default = true, l_pos = 100),
-            ..head_pos_generator("4", ALPHABET[0:25], generate_default = true, l_pos = 100, r_pos = 100),
             "5": char_pos(4100),
             "5a": char_pos(4200),
             "5b": char_pos(4300),
             "5c": char_pos(4400),
             "5d": char_pos(4500),
+
+            ..head_pos_generator("1", ALPHABET[0:25], generate_default = true),
+            ..head_pos_generator("2", ALPHABET[0:25], generate_default = true, r_pos = 100),
+            ..head_pos_generator("3", ALPHABET[0:25], generate_default = true, l_pos = 100),
+            ..head_pos_generator("4", ALPHABET[0:25], generate_default = true, l_pos = 100, r_pos = 100),
 
             ..head_pos_generator("1b", ALPHABET[0:25], l_pos = 200, r_pos = 200),
             ..head_pos_generator("2b", ALPHABET[0:25], l_pos = 200, r_pos = 300),
@@ -233,13 +235,14 @@ sprites = {
         },
         
         m: {
+            "5": { char_pos: 4100 },
+            "5a": { char_pos: 4100 },
+            "5b": { char_pos: 4200 },
+            
             ..head_pos_generator("1", ALPHABET[0:18], generate_default = true),
             ..head_pos_generator("2", ALPHABET[0:18], r_pos = 100, generate_default = true),
             ..head_pos_generator("3", ALPHABET[0:18], l_pos = 100, generate_default = true),
             ..head_pos_generator("4", ALPHABET[0:18], l_pos = 100, r_pos = 100, generate_default = true),
-            "5": { char_pos: 4100 },
-            "5a": { char_pos: 4100 },
-            "5b": { char_pos: 4200 },
         }
     }
 }
